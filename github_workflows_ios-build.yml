@@ -1,0 +1,63 @@
+# GitHub Actions — iOS build fallback (Option B)
+#
+# ONLY genuinely free if this repository is PUBLIC. On a private repo, macOS
+# runners consume your monthly free minutes at a 10x multiplier (GitHub's
+# private-repo free tier is ~2,000 minutes/month total — that becomes ~200
+# effective macOS-minutes, which a handful of iOS builds will exhaust).
+#
+# This workflow builds an UNSIGNED ipa by default. To produce a signed build
+# ready for TestFlight, you need to additionally:
+#   1. Export your Apple signing certificate (.p12) and provisioning profile
+#   2. Base64-encode them and store as GitHub encrypted secrets
+#      (Settings -> Secrets and variables -> Actions)
+#   3. Add steps to import the certificate into a temporary keychain and
+#      install the provisioning profile before the build step
+# That signing setup is exactly what Codemagic (codemagic.yaml, Option A)
+# handles automatically — it's the main reason Option A is recommended as
+# the default path for this project. Use this file if you've decided to
+# make the repo public and want to avoid Codemagic for another reason.
+
+name: iOS Build
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build-ios:
+    runs-on: macos-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: 'stable'
+          channel: 'stable'
+
+      - name: Get dependencies
+        run: flutter pub get
+
+      - name: Build unsigned iOS app
+        run: flutter build ipa --release --no-codesign
+
+      # Uncomment and configure once signing secrets are set up (see notes above):
+      # - name: Import signing certificate
+      #   env:
+      #     CERT_P12_BASE64: ${{ secrets.IOS_CERT_P12_BASE64 }}
+      #     CERT_PASSWORD: ${{ secrets.IOS_CERT_PASSWORD }}
+      #   run: |
+      #     echo "$CERT_P12_BASE64" | base64 --decode > certificate.p12
+      #     security create-keychain -p "" build.keychain
+      #     security import certificate.p12 -k build.keychain -P "$CERT_PASSWORD" -T /usr/bin/codesign
+      #
+      # - name: Build signed IPA
+      #   run: flutter build ipa --release --export-options-plist=ios/ExportOptions.plist
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: physix-in-motion-ios-unsigned
+          path: build/ios/archive/Runner.xcarchive

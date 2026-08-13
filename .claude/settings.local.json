@@ -1,0 +1,21 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(mkdir -p lib/core/physics_engine lib/core/gamification lib/core/theme lib/core/constants)",
+      "Bash(mkdir -p lib/domain/entities lib/domain/usecases)",
+      "Bash(mkdir -p lib/data/tables lib/data/daos lib/data/repositories lib/data/content_importer)",
+      "Bash(mkdir -p lib/presentation/role_select lib/presentation/trip_tracker lib/presentation/motion_lab lib/presentation/graph_visualizer lib/presentation/mission_mode lib/presentation/evaluation lib/presentation/badges lib/presentation/settings lib/presentation/teacher_dashboard lib/presentation/roster lib/presentation/lesson_plan_viewer lib/presentation/reports)",
+      "Bash(mkdir -p assets/content assets/icons)",
+      "Bash(cp kinematics_v1.json assets/content/kinematics_v1.json)",
+      "Bash(cp icon_mark_transparent.png assets/icons/icon_mark_transparent.png)",
+      "Bash(flutter pub *)",
+      "Bash(flutter analyze *)",
+      "Bash(flutter test *)",
+      "Bash(flutter build *)",
+      "Bash(wmic logicaldisk *)",
+      "Bash(mkdir -p \"E:/gradle_home\")",
+      "Bash(setx GRADLE_USER_HOME \"E:\\\\gradle_home\")",
+      "Bash(export GRADLE_USER_HOME=\"E:/gradle_home\")"
+    ]
+  }
+}

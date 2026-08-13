@@ -1,0 +1,61 @@
+workflows:
+  ios-workflow:
+    name: PhysiX in Motion — iOS
+    max_build_duration: 60
+    instance_type: mac_mini_m2
+    environment:
+      flutter: stable
+      xcode: latest
+      cocoapods: default
+      groups:
+        - app_store_credentials   # create this group in Codemagic UI: App Store Connect API key
+      vars:
+        BUNDLE_ID: "com.physixinmotion.physixInMotion"   # matches ios/Runner.xcodeproj's PRODUCT_BUNDLE_IDENTIFIER
+    scripts:
+      - name: Get Flutter packages
+        script: flutter pub get
+      - name: Set up code signing (automatic, via App Store Connect API key)
+        script: |
+          xcode-project use-profiles
+      - name: Build IPA for TestFlight
+        script: |
+          flutter build ipa --release \
+            --export-options-plist=/Users/builder/export_options.plist
+    artifacts:
+      - build/ios/ipa/*.ipa
+      - build/ios/xcarchive
+    publishing:
+      email:
+        recipients:
+          - niftykith@gmail.com   # update if you'd rather notifications go elsewhere
+        notify:
+          success: true
+          failure: true
+      app_store_connect:
+        auth: integration            # uses the app_store_credentials group above
+        submit_to_testflight: true
+        beta_groups:
+          - PhysiX Pilot Testers      # create this TestFlight external group in App Store Connect first
+
+  android-workflow:
+    name: PhysiX in Motion — Android
+    max_build_duration: 30
+    instance_type: linux_x2
+    environment:
+      flutter: stable
+      groups:
+        - android_signing            # create this group in Codemagic UI: keystore + credentials
+    scripts:
+      - name: Get Flutter packages
+        script: flutter pub get
+      - name: Build release APK
+        script: flutter build apk --release
+    artifacts:
+      - build/app/outputs/flutter-apk/*.apk
+    publishing:
+      email:
+        recipients:
+          - your-email@example.com
+        notify:
+          success: true
+          failure: true
