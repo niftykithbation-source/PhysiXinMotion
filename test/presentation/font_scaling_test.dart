@@ -17,7 +17,7 @@ import 'package:physix_in_motion/presentation/student/motion_lab/motion_lab_scre
 import 'package:physix_in_motion/presentation/student/profile/profile_screen.dart';
 import 'package:physix_in_motion/presentation/student/trip_tracker/trip_tracker_screen.dart';
 import 'package:physix_in_motion/presentation/teacher/dashboard/dashboard_screen.dart';
-import 'package:physix_in_motion/presentation/teacher/lesson_plan/lesson_plan_screen.dart';
+import 'package:physix_in_motion/presentation/teacher/lesson_plan/lesson_plan_viewer.dart';
 import 'package:physix_in_motion/presentation/teacher/reports/reports_export_screen.dart';
 import 'package:physix_in_motion/presentation/teacher/roster/roster_screen.dart';
 import 'package:physix_in_motion/presentation/validator/validator_checklist_screen.dart';
@@ -62,7 +62,7 @@ void main() {
     'SettingsScreen': () => const SettingsScreen(),
     'Teacher DashboardScreen': () => const DashboardScreen(),
     'Teacher RosterScreen': () => const RosterScreen(),
-    'Teacher LessonPlanScreen': () => const LessonPlanScreen(),
+    'Teacher LessonPlanViewer': () => const LessonPlanViewer(),
     'Teacher ReportsExportScreen': () => const ReportsExportScreen(),
     'ValidatorChecklistScreen': () => const ValidatorChecklistScreen(),
   };

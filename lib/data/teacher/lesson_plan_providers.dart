@@ -12,3 +12,11 @@ final lessonPlanStagesProvider = FutureProvider.autoDispose<List<LessonStageRow>
     ..orderBy([(t) => OrderingTerm.asc(t.sequenceOrder)]);
   return query.get();
 });
+
+/// The active content pack's own metadata (topic name, MELC codes) — shown
+/// as a header on the unified Lesson Plan Viewer.
+final activeContentPackProvider = FutureProvider.autoDispose<ContentPackRow?>((ref) async {
+  final db = ref.watch(appDatabaseProvider);
+  return (db.select(db.contentPacks)..where((t) => t.packId.equals(kActiveContentPackId)))
+      .getSingleOrNull();
+});

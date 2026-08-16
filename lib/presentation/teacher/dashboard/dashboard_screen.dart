@@ -6,25 +6,32 @@ import '../../../data/db/database_provider.dart';
 import '../../../data/session/stage_progress_repository.dart';
 import '../../../data/teacher/dashboard_repository.dart';
 import '../../../data/teacher/roster_providers.dart';
+import '../../settings/settings_screen.dart';
 import '../import/import_screen.dart';
+import '../roster/scan_qr_screen.dart';
 import '../roster/student_detail_screen.dart';
+import '../widgets/section_dropdown.dart';
 
 final _dashboardMetricsProvider = FutureProvider.autoDispose<DashboardMetrics>((ref) async {
   final db = ref.watch(appDatabaseProvider);
-  // Rebuild whenever the roster changes.
+  // Rebuild whenever the roster changes or the active section filter
+  // switches (Scan Student QR / Import Student Results both invalidate
+  // rosterStudentsProvider, which this depends on transitively).
   ref.watch(rosterStudentsProvider);
-  return DashboardRepository(db).computeMetrics();
+  final sectionId = ref.watch(activeSectionIdProvider);
+  return DashboardRepository(db).computeMetrics(sectionId: sectionId);
 });
 
 /// Teacher — Dashboard. Blueprint §3.3: class-wide summary cards (capped
-/// per §3.1 principle 5) + per-student row list + Import entry point.
+/// per §3.1 principle 5) + per-student row list + Import/Scan entry
+/// points, all filterable to a single section via the Section Dropdown.
 class DashboardScreen extends ConsumerWidget {
   const DashboardScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final metricsAsync = ref.watch(_dashboardMetricsProvider);
-    final rosterAsync = ref.watch(rosterStudentsProvider);
+    final rosterAsync = ref.watch(filteredRosterStudentsProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -35,6 +42,13 @@ class DashboardScreen extends ConsumerWidget {
             tooltip: 'Import Student Results',
             onPressed: () => Navigator.of(context).push(
               MaterialPageRoute(builder: (_) => const ImportScreen()),
+            ),
+          ),
+          IconButton(
+            icon: const Icon(Icons.settings_outlined),
+            tooltip: 'Settings',
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const SettingsScreen(showTeacherControls: true)),
             ),
           ),
         ],
@@ -48,6 +62,19 @@ class DashboardScreen extends ConsumerWidget {
           child: ListView(
             padding: const EdgeInsets.all(24),
             children: [
+              const SectionDropdown(),
+              const SizedBox(height: 16),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  icon: const Icon(Icons.qr_code_scanner),
+                  label: const Text('Scan Student QR'),
+                  onPressed: () => Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => const ScanQrScreen()),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
               metricsAsync.when(
                 data: (metrics) => _MetricsGrid(metrics: metrics),
                 loading: () => const Center(child: CircularProgressIndicator()),
@@ -58,7 +85,7 @@ class DashboardScreen extends ConsumerWidget {
               const SizedBox(height: 12),
               rosterAsync.when(
                 data: (roster) => roster.isEmpty
-                    ? const Text('No students in the roster yet.')
+                    ? const Text('No students in this section yet.')
                     : Column(
                         children: [
                           for (final entry in roster)
@@ -99,6 +126,14 @@ class _MetricsGrid extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text('${metrics.studentCount} students', style: Theme.of(context).textTheme.bodyMedium),
+        const SizedBox(height: 12),
+        _MetricCard(
+          title: 'Class average',
+          value: metrics.avgQuizScorePct == null
+              ? 'No completed attempts yet'
+              : '${(metrics.avgQuizScorePct! * 100).toStringAsFixed(0)}%',
+          subtitle: 'Average best-attempt quiz score across this section.',
+        ),
         const SizedBox(height: 12),
         _MetricCard(
           title: 'Avg. pre/post score delta',

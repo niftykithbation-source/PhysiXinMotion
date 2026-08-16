@@ -21,6 +21,11 @@ class Users extends Table {
       text().nullable().references(ClassSections, #sectionId)();
   IntColumn get createdAt => integer()();
   IntColumn get lastLoginAt => integer().nullable()();
+  // Schema v2 — Teacher Portal roster management: the school's own official
+  // student identifier (LRN or class number), distinct from userId (this
+  // app's internal row key) and from displayName (which can collide across
+  // students). Nullable/additive: not in blueprint §5's original SQL.
+  TextColumn get officialStudentId => text().nullable()();
 
   @override
   Set<Column> get primaryKey => {userId};
@@ -33,6 +38,14 @@ class ClassSections extends Table {
   TextColumn get sectionName => text()();
   TextColumn get schoolName => text().nullable()();
   IntColumn get createdAt => integer()();
+  // Schema v2 — Teacher Portal multi-section management. schoolYear is
+  // free text (e.g. "2025-2026"); sectionPin is the code a teacher hands
+  // out to students so their QR scan / local profile self-tags into this
+  // section (see student_profile_provider.dart and qr_ingest_service.dart)
+  // — not a login credential, just a local roster-filing key. Nullable/
+  // additive: not in blueprint §5's original SQL.
+  TextColumn get schoolYear => text().nullable()();
+  TextColumn get sectionPin => text().nullable()();
 
   @override
   Set<Column> get primaryKey => {sectionId};

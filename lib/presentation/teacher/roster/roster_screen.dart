@@ -6,17 +6,21 @@ import 'package:uuid/uuid.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../data/db/database.dart';
 import '../../../data/db/database_provider.dart';
-import '../../../data/session/current_teacher_provider.dart';
 import '../../../data/teacher/roster_providers.dart';
+import '../widgets/section_dropdown.dart';
 import 'student_detail_screen.dart';
 
-/// Teacher — Class Roster. Blueprint §3.2/§7 Step 6.
+/// Teacher — Class Roster. Blueprint §3.2/§7 Step 6, with multi-section
+/// management: the Section Dropdown filters this list (shared with the
+/// Dashboard tab via activeSectionIdProvider), and "Manage sections"
+/// surfaces every section's school year and Section PIN for handing out
+/// to students.
 class RosterScreen extends ConsumerWidget {
   const RosterScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final rosterAsync = ref.watch(rosterStudentsProvider);
+    final rosterAsync = ref.watch(filteredRosterStudentsProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -29,34 +33,46 @@ class RosterScreen extends ConsumerWidget {
           ),
         ],
       ),
-      body: rosterAsync.when(
-        data: (roster) => roster.isEmpty
-            ? const Center(child: Text('No students yet. Add one, or import results.'))
-            : ListView.builder(
-                itemCount: roster.length,
-                itemBuilder: (context, index) {
-                  final entry = roster[index];
-                  return ListTile(
-                    leading: const CircleAvatar(child: Icon(Icons.person)),
-                    title: Text(entry.user.displayName),
-                    subtitle: Text(
-                      [
-                        if (entry.section != null) entry.section!.sectionName,
-                        if (entry.user.gradeLevel != null) entry.user.gradeLevel!,
-                        if (entry.user.strand != null) entry.user.strand!,
-                      ].join(' · ').ifEmpty('No section assigned'),
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+            child: const SectionDropdown(),
+          ),
+          Expanded(
+            child: rosterAsync.when(
+              data: (roster) => roster.isEmpty
+                  ? const Center(child: Text('No students yet. Add one, or import results.'))
+                  : ListView.builder(
+                      itemCount: roster.length,
+                      itemBuilder: (context, index) {
+                        final entry = roster[index];
+                        return ListTile(
+                          leading: const CircleAvatar(child: Icon(Icons.person)),
+                          title: Text(entry.user.displayName),
+                          subtitle: Text(
+                            [
+                              if (entry.section != null) entry.section!.sectionName,
+                              if (entry.user.officialStudentId != null)
+                                'ID: ${entry.user.officialStudentId}',
+                              if (entry.user.gradeLevel != null) entry.user.gradeLevel!,
+                              if (entry.user.strand != null) entry.user.strand!,
+                            ].join(' · ').ifEmpty('No section assigned'),
+                          ),
+                          trailing: const Icon(Icons.chevron_right),
+                          onTap: () => Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) => StudentDetailScreen(student: entry.user),
+                            ),
+                          ),
+                        );
+                      },
                     ),
-                    trailing: const Icon(Icons.chevron_right),
-                    onTap: () => Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (_) => StudentDetailScreen(student: entry.user),
-                      ),
-                    ),
-                  );
-                },
-              ),
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, stackTrace) => Center(child: Text('$error')),
+              loading: () => const Center(child: CircularProgressIndicator()),
+              error: (error, stackTrace) => Center(child: Text('$error')),
+            ),
+          ),
+        ],
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () => _showAddStudentDialog(context, ref),
@@ -67,10 +83,17 @@ class RosterScreen extends ConsumerWidget {
 
   Future<void> _showAddStudentDialog(BuildContext context, WidgetRef ref) async {
     final nameController = TextEditingController();
+    final studentIdController = TextEditingController();
     final gradeController = TextEditingController(text: 'Grade 11');
     final strandController = TextEditingController(text: 'STEM');
     final sections = await ref.read(classSectionsProvider.future);
-    String? selectedSectionId;
+    // Pre-select whichever section the Roster tab is currently filtered
+    // to, if any — the common case is adding a student while already
+    // looking at their section.
+    String? selectedSectionId = ref.read(activeSectionIdProvider);
+    if (selectedSectionId != null && !sections.any((s) => s.sectionId == selectedSectionId)) {
+      selectedSectionId = null;
+    }
 
     if (!context.mounted) return;
     await showDialog<void>(
@@ -78,33 +101,39 @@ class RosterScreen extends ConsumerWidget {
       builder: (dialogContext) => StatefulBuilder(
         builder: (dialogContext, setState) => AlertDialog(
           title: const Text('Add Student'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: nameController,
-                decoration: const InputDecoration(labelText: 'Full name'),
-              ),
-              TextField(
-                controller: gradeController,
-                decoration: const InputDecoration(labelText: 'Grade level'),
-              ),
-              TextField(
-                controller: strandController,
-                decoration: const InputDecoration(labelText: 'Strand'),
-              ),
-              const SizedBox(height: 8),
-              DropdownButtonFormField<String?>(
-                initialValue: selectedSectionId,
-                decoration: const InputDecoration(labelText: 'Section'),
-                items: [
-                  const DropdownMenuItem(value: null, child: Text('No section')),
-                  for (final section in sections)
-                    DropdownMenuItem(value: section.sectionId, child: Text(section.sectionName)),
-                ],
-                onChanged: (value) => setState(() => selectedSectionId = value),
-              ),
-            ],
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: nameController,
+                  decoration: const InputDecoration(labelText: 'Full name'),
+                ),
+                TextField(
+                  controller: studentIdController,
+                  decoration: const InputDecoration(labelText: 'Student ID (LRN / class number)'),
+                ),
+                TextField(
+                  controller: gradeController,
+                  decoration: const InputDecoration(labelText: 'Grade level'),
+                ),
+                TextField(
+                  controller: strandController,
+                  decoration: const InputDecoration(labelText: 'Strand'),
+                ),
+                const SizedBox(height: 8),
+                DropdownButtonFormField<String?>(
+                  initialValue: selectedSectionId,
+                  decoration: const InputDecoration(labelText: 'Section'),
+                  items: [
+                    const DropdownMenuItem(value: null, child: Text('No section')),
+                    for (final section in sections)
+                      DropdownMenuItem(value: section.sectionId, child: Text(section.sectionName)),
+                  ],
+                  onChanged: (value) => setState(() => selectedSectionId = value),
+                ),
+              ],
+            ),
           ),
           actions: [
             TextButton(
@@ -120,6 +149,11 @@ class RosterScreen extends ConsumerWidget {
                       role: 'student',
                       displayName: nameController.text.trim(),
                       pinHash: '',
+                      officialStudentId: Value(
+                        studentIdController.text.trim().isEmpty
+                            ? null
+                            : studentIdController.text.trim(),
+                      ),
                       gradeLevel: Value(gradeController.text.trim()),
                       strand: Value(strandController.text.trim()),
                       sectionId: Value(selectedSectionId),
@@ -140,33 +174,18 @@ class RosterScreen extends ConsumerWidget {
     await showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
-      builder: (sheetContext) => _ManageSectionsSheet(ref: ref),
+      builder: (sheetContext) => const _ManageSectionsSheet(),
     );
   }
 }
 
-class _ManageSectionsSheet extends StatefulWidget {
-  const _ManageSectionsSheet({required this.ref});
-
-  final WidgetRef ref;
+class _ManageSectionsSheet extends ConsumerWidget {
+  const _ManageSectionsSheet();
 
   @override
-  State<_ManageSectionsSheet> createState() => _ManageSectionsSheetState();
-}
-
-class _ManageSectionsSheetState extends State<_ManageSectionsSheet> {
-  final _newSectionController = TextEditingController();
-
-  @override
-  void dispose() {
-    _newSectionController.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final colors = AppColors.of(context);
-    final sectionsAsync = widget.ref.watch(classSectionsProvider);
+    final sectionsAsync = ref.watch(classSectionsProvider);
 
     return Padding(
       padding: EdgeInsets.only(
@@ -193,6 +212,12 @@ class _ManageSectionsSheetState extends State<_ManageSectionsSheet> {
                         ListTile(
                           contentPadding: EdgeInsets.zero,
                           title: Text(section.sectionName),
+                          subtitle: Text(
+                            [
+                              if (section.schoolYear != null) section.schoolYear!,
+                              if (section.sectionPin != null) 'PIN: ${section.sectionPin}',
+                            ].join(' · ').ifEmpty('No school year or PIN set'),
+                          ),
                         ),
                     ],
                   ),
@@ -200,37 +225,17 @@ class _ManageSectionsSheetState extends State<_ManageSectionsSheet> {
             error: (error, stackTrace) => Text('$error'),
           ),
           const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(
-                child: TextField(
-                  controller: _newSectionController,
-                  decoration: const InputDecoration(labelText: 'New section name (e.g. STEM 11-A)'),
-                ),
-              ),
-              const SizedBox(width: 8),
-              ElevatedButton(onPressed: _addSection, child: const Text('Add')),
-            ],
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              icon: const Icon(Icons.add),
+              label: const Text('Add Section'),
+              onPressed: () => showAddSectionDialog(context, ref),
+            ),
           ),
         ],
       ),
     );
-  }
-
-  Future<void> _addSection() async {
-    final name = _newSectionController.text.trim();
-    if (name.isEmpty) return;
-
-    final db = widget.ref.read(appDatabaseProvider);
-    final teacher = await widget.ref.read(currentTeacherProvider.future);
-    await db.into(db.classSections).insert(ClassSectionsCompanion.insert(
-          sectionId: const Uuid().v4(),
-          teacherId: Value(teacher.userId),
-          sectionName: name,
-          createdAt: DateTime.now().millisecondsSinceEpoch,
-        ));
-    widget.ref.invalidate(classSectionsProvider);
-    _newSectionController.clear();
   }
 }
 

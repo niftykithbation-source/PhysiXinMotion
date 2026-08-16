@@ -1,6 +1,7 @@
 import 'package:drift/drift.dart';
 
 import '../db/database.dart';
+import '../evaluation/evaluation_providers.dart' show orderQuizItemsByNumber;
 import '../session/current_student_provider.dart' show kActiveContentPackId;
 import '../session/stage_progress_repository.dart';
 
@@ -26,19 +27,35 @@ class DashboardMetrics {
   /// yet in the roster's data.
   final double? avgPrePostDelta;
 
+  /// Average best-attempt score ratio (0-1) across every student with at
+  /// least one completed quiz attempt — the class-wide overall average,
+  /// including QR-scanned summary attempts (see QrIngestService). Null if
+  /// no student has a completed attempt yet.
+  final double? avgQuizScorePct;
+
   /// Fraction (0-1) of roster students who have completed each 5E stage.
   final Map<String, double> stageCompletionRates;
 
   /// The quiz item with the highest miss rate across the whole roster, or
-  /// null if no quiz responses exist yet.
+  /// null if no quiz responses exist yet. Derived from [itemDifficultyRates].
   final QuizItemMissRate? mostMissedItem;
+
+  /// Every quiz item's miss rate, in q1..q10 order — "auto-flagged
+  /// most-missed items for re-teaching" at the per-item level, not just
+  /// the single worst one. Empty if no quiz_item_responses exist yet.
+  /// Updates automatically after a QR scan writes new responses (see
+  /// QrIngestService), since this is recomputed fresh on every
+  /// [computeMetrics] call.
+  final List<QuizItemMissRate> itemDifficultyRates;
 
   final int studentCount;
 
   const DashboardMetrics({
     required this.avgPrePostDelta,
+    required this.avgQuizScorePct,
     required this.stageCompletionRates,
     required this.mostMissedItem,
+    required this.itemDifficultyRates,
     required this.studentCount,
   });
 }
@@ -51,20 +68,50 @@ class DashboardRepository {
 
   DashboardRepository(this.db) : _stageProgress = StageProgressRepository(db);
 
-  Future<DashboardMetrics> computeMetrics() async {
-    final students =
-        await (db.select(db.users)..where((t) => t.role.equals('student'))).get();
+  /// [sectionId] narrows every metric to that section's roster only; null
+  /// computes class-wide metrics across the whole roster ("All sections").
+  Future<DashboardMetrics> computeMetrics({String? sectionId}) async {
+    final query = db.select(db.users)..where((t) => t.role.equals('student'));
+    if (sectionId != null) {
+      query.where((t) => t.sectionId.equals(sectionId));
+    }
+    final students = await query.get();
+    final studentIds = students.map((s) => s.userId).toList();
 
-    final avgDelta = await _avgPrePostDelta(students.map((s) => s.userId).toList());
-    final stageCompletion = await _stageCompletionRates(students.map((s) => s.userId).toList());
-    final mostMissed = await _mostMissedItem(students.map((s) => s.userId).toList());
+    final avgDelta = await _avgPrePostDelta(studentIds);
+    final avgQuizScore = await _avgQuizScorePct(studentIds);
+    final stageCompletion = await _stageCompletionRates(studentIds);
+    final itemRates = await itemDifficultyRates(studentIds);
+    final mostMissed = _worstOf(itemRates);
 
     return DashboardMetrics(
       avgPrePostDelta: avgDelta,
+      avgQuizScorePct: avgQuizScore,
       stageCompletionRates: stageCompletion,
       mostMissedItem: mostMissed,
+      itemDifficultyRates: itemRates,
       studentCount: students.length,
     );
+  }
+
+  /// Average of each student's best completed-attempt ratio — the
+  /// headline "class average" card, deliberately not limited to
+  /// pretest/posttest attempts (unlike [_avgPrePostDelta]) so it also
+  /// reflects formative and QR-scanned attempts.
+  Future<double?> _avgQuizScorePct(List<String> studentIds) async {
+    if (studentIds.isEmpty) return null;
+
+    final ratios = <double>[];
+    for (final studentId in studentIds) {
+      final attempts = await (db.select(db.quizAttempts)
+            ..where((t) => t.userId.equals(studentId) & t.completedAt.isNotNull()))
+          .get();
+      final best = _bestRatio(attempts);
+      if (best != null) ratios.add(best);
+    }
+
+    if (ratios.isEmpty) return null;
+    return ratios.reduce((a, b) => a + b) / ratios.length;
   }
 
   Future<double?> _avgPrePostDelta(List<String> studentIds) async {
@@ -125,51 +172,63 @@ class DashboardRepository {
     };
   }
 
-  Future<QuizItemMissRate?> _mostMissedItem(List<String> studentIds) async {
-    if (studentIds.isEmpty) return null;
+  /// Every active-pack quiz item's miss rate across [studentIds], in
+  /// q1..q10 order — items with zero responses so far still appear, with
+  /// missCount/totalResponses both 0. Recomputed fresh on every call (no
+  /// caching), so a QR scan that adds quiz_item_responses is reflected the
+  /// next time the Dashboard reads this (via ref.invalidate(
+  /// rosterStudentsProvider), which _dashboardMetricsProvider watches).
+  Future<List<QuizItemMissRate>> itemDifficultyRates(List<String> studentIds) async {
+    final orderedItems = orderQuizItemsByNumber(
+      await (db.select(db.quizItems)..where((t) => t.packId.equals(kActiveContentPackId))).get(),
+    );
+    if (studentIds.isEmpty) {
+      return [
+        for (final item in orderedItems)
+          QuizItemMissRate(itemId: item.itemId, prompt: item.prompt, missCount: 0, totalResponses: 0),
+      ];
+    }
 
     final query = db.select(db.quizItemResponses).join([
       innerJoin(
         db.quizAttempts,
         db.quizAttempts.attemptId.equalsExp(db.quizItemResponses.attemptId),
       ),
-      innerJoin(db.quizItems, db.quizItems.itemId.equalsExp(db.quizItemResponses.itemId)),
     ])
       ..where(db.quizAttempts.userId.isIn(studentIds));
     final rows = await query.get();
-    if (rows.isEmpty) return null;
 
-    final tally = <String, (String prompt, int miss, int total)>{};
+    final missCounts = <String, int>{};
+    final totalCounts = <String, int>{};
     for (final row in rows) {
       final response = row.readTable(db.quizItemResponses);
-      final item = row.readTable(db.quizItems);
-      final current = tally[item.itemId] ?? (item.prompt, 0, 0);
-      tally[item.itemId] = (
-        current.$1,
-        current.$2 + (response.isCorrect ? 0 : 1),
-        current.$3 + 1,
-      );
+      final itemId = response.itemId;
+      if (itemId == null) continue;
+      totalCounts[itemId] = (totalCounts[itemId] ?? 0) + 1;
+      if (!response.isCorrect) missCounts[itemId] = (missCounts[itemId] ?? 0) + 1;
     }
 
-    MapEntry<String, (String, int, int)>? worst;
-    for (final entry in tally.entries) {
-      if (worst == null) {
-        worst = entry;
-        continue;
-      }
-      final entryRate = entry.value.$2 / entry.value.$3;
-      final worstRate = worst.value.$2 / worst.value.$3;
-      if (entryRate > worstRate || (entryRate == worstRate && entry.value.$2 > worst.value.$2)) {
-        worst = entry;
+    return [
+      for (final item in orderedItems)
+        QuizItemMissRate(
+          itemId: item.itemId,
+          prompt: item.prompt,
+          missCount: missCounts[item.itemId] ?? 0,
+          totalResponses: totalCounts[item.itemId] ?? 0,
+        ),
+    ];
+  }
+
+  QuizItemMissRate? _worstOf(List<QuizItemMissRate> rates) {
+    QuizItemMissRate? worst;
+    for (final rate in rates) {
+      if (rate.totalResponses == 0) continue;
+      if (worst == null ||
+          rate.missRate > worst.missRate ||
+          (rate.missRate == worst.missRate && rate.missCount > worst.missCount)) {
+        worst = rate;
       }
     }
-
-    if (worst == null) return null;
-    return QuizItemMissRate(
-      itemId: worst.key,
-      prompt: worst.value.$1,
-      missCount: worst.value.$2,
-      totalResponses: worst.value.$3,
-    );
+    return worst;
   }
 }

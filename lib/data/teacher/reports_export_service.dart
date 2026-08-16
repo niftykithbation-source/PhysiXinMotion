@@ -3,6 +3,8 @@ import 'dart:convert';
 import 'package:drift/drift.dart';
 
 import '../db/database.dart';
+import '../evaluation/evaluation_providers.dart' show orderQuizItemsByNumber;
+import '../session/current_student_provider.dart' show kActiveContentPackId;
 
 class ItemLevelResponseRow {
   final String studentId;
@@ -47,6 +49,37 @@ class ItemLevelResponseRow {
         'attempt_type': attemptType,
         'answered_at': DateTime.fromMillisecondsSinceEpoch(answeredAt).toIso8601String(),
       };
+}
+
+/// One row per completed quiz attempt, with answers spread across
+/// positional q1_ans..qN_ans columns instead of one row per response —
+/// the classic "response matrix" shape (student x item) that Excel/SPSS
+/// users and manual Cronbach's-Alpha-by-formula work expect, and what the
+/// Teacher Portal's CSV export produces (see [ReportsExportService.
+/// fetchResponseMatrix] / [ReportsExportService.toResponseMatrixCsv]).
+class ResponseMatrixRow {
+  final String studentId;
+  final String? section;
+  final String quizScore;
+  final List<String?> answers;
+  final String timestamp;
+
+  const ResponseMatrixRow({
+    required this.studentId,
+    required this.section,
+    required this.quizScore,
+    required this.answers,
+    required this.timestamp,
+  });
+}
+
+class ResponseMatrix {
+  /// Number of q{n}_ans columns — the active pack's item count
+  /// (orderQuizItemsByNumber), regardless of whether any rows exist yet.
+  final int questionCount;
+  final List<ResponseMatrixRow> rows;
+
+  const ResponseMatrix({required this.questionCount, required this.rows});
 }
 
 /// Blueprint §3.3/§7 Step 6: "raw CSV/JSON export for research stats" —
@@ -131,5 +164,79 @@ class ReportsExportService {
       return '"${text.replaceAll('"', '""')}"';
     }
     return text;
+  }
+
+  /// One row per completed quiz attempt across the whole roster (both
+  /// full in-app Evaluation sessions and QR-scanned attempts — see
+  /// QrIngestService), with per-item answers spread across q1_ans..qN_ans
+  /// columns. Excel-ready CSV via [toResponseMatrixCsv].
+  Future<ResponseMatrix> fetchResponseMatrix() async {
+    final orderedItems = orderQuizItemsByNumber(
+      await (db.select(db.quizItems)..where((t) => t.packId.equals(kActiveContentPackId))).get(),
+    );
+
+    final attempts = await (db.select(db.quizAttempts)
+          ..where((t) => t.packId.equals(kActiveContentPackId) & t.completedAt.isNotNull())
+          ..orderBy([(t) => OrderingTerm.asc(t.completedAt)]))
+        .get();
+
+    final rows = <ResponseMatrixRow>[];
+    for (final attempt in attempts) {
+      final userId = attempt.userId;
+      if (userId == null) continue;
+      final student =
+          await (db.select(db.users)..where((t) => t.userId.equals(userId))).getSingleOrNull();
+      if (student == null) continue;
+      final section = student.sectionId == null
+          ? null
+          : await (db.select(db.classSections)
+                ..where((t) => t.sectionId.equals(student.sectionId!)))
+              .getSingleOrNull();
+
+      final responses = await (db.select(db.quizItemResponses)
+            ..where((t) => t.attemptId.equals(attempt.attemptId)))
+          .get();
+      final byItemId = {for (final r in responses) r.itemId: r.givenAnswer};
+      final answers = orderedItems.map((item) => byItemId[item.itemId]).toList();
+
+      rows.add(ResponseMatrixRow(
+        studentId: student.officialStudentId ?? student.userId,
+        section: section?.sectionName,
+        quizScore: (attempt.totalScore == null || attempt.maxScore == null)
+            ? ''
+            : '${attempt.totalScore!.toInt()}/${attempt.maxScore!.toInt()}',
+        answers: answers,
+        timestamp: attempt.completedAt == null
+            ? ''
+            : DateTime.fromMillisecondsSinceEpoch(attempt.completedAt!).toIso8601String(),
+      ));
+    }
+
+    return ResponseMatrix(questionCount: orderedItems.length, rows: rows);
+  }
+
+  /// Headers: student_ID, section, quiz_score, q1_ans..qN_ans, timestamp.
+  String toResponseMatrixCsv(ResponseMatrix matrix) {
+    final headers = [
+      'student_ID',
+      'section',
+      'quiz_score',
+      for (var i = 1; i <= matrix.questionCount; i++) 'q${i}_ans',
+      'timestamp',
+    ];
+    final buffer = StringBuffer()..writeln(headers.join(','));
+
+    for (final row in matrix.rows) {
+      final fields = [
+        row.studentId,
+        row.section ?? '',
+        row.quizScore,
+        for (var i = 0; i < matrix.questionCount; i++)
+          (i < row.answers.length ? row.answers[i] : null) ?? '',
+        row.timestamp,
+      ];
+      buffer.writeln(fields.map(_csvField).join(','));
+    }
+    return buffer.toString();
   }
 }

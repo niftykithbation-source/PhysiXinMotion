@@ -63,6 +63,22 @@ dependencies:
   # directly). 10.x has the compileSdk fix without that AGP9 branching.
   file_picker: ^10.3.3
 
+  # Motion Lab 3D upgrade: pure Vector3/matrix math for the hand-rolled
+  # pseudo-3D orbit camera in motion_3d_panel.dart (CustomPainter-drawn,
+  # no WebGL/GPU engine). Already resolved transitively via fl_chart at
+  # this exact version; promoted to a direct dependency since app code now
+  # imports it directly rather than relying on a transitive resolution.
+  vector_math: ^2.2.0
+
+  # Dashboard / Evaluate-modal QR display (Teacher Roster Integration —
+  # see the notes near the top of student_home_shell.dart). Pure on-device
+  # rendering of a small local JSON summary, no network calls.
+  qr_flutter: ^4.1.0
+
+  # Teacher Portal QR scanner (Class Roster -> "Scan Student QR"). Camera
+  # capture + on-device barcode decode, no network calls.
+  mobile_scanner: ^7.1.2
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

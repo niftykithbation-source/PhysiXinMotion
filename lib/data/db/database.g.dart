@@ -67,6 +67,28 @@ class $ClassSectionsTable extends ClassSections
     type: DriftSqlType.int,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _schoolYearMeta = const VerificationMeta(
+    'schoolYear',
+  );
+  @override
+  late final GeneratedColumn<String> schoolYear = GeneratedColumn<String>(
+    'school_year',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _sectionPinMeta = const VerificationMeta(
+    'sectionPin',
+  );
+  @override
+  late final GeneratedColumn<String> sectionPin = GeneratedColumn<String>(
+    'section_pin',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   @override
   List<GeneratedColumn> get $columns => [
     sectionId,
@@ -74,6 +96,8 @@ class $ClassSectionsTable extends ClassSections
     sectionName,
     schoolName,
     createdAt,
+    schoolYear,
+    sectionPin,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -126,6 +150,18 @@ class $ClassSectionsTable extends ClassSections
     } else if (isInserting) {
       context.missing(_createdAtMeta);
     }
+    if (data.containsKey('school_year')) {
+      context.handle(
+        _schoolYearMeta,
+        schoolYear.isAcceptableOrUnknown(data['school_year']!, _schoolYearMeta),
+      );
+    }
+    if (data.containsKey('section_pin')) {
+      context.handle(
+        _sectionPinMeta,
+        sectionPin.isAcceptableOrUnknown(data['section_pin']!, _sectionPinMeta),
+      );
+    }
     return context;
   }
 
@@ -155,6 +191,14 @@ class $ClassSectionsTable extends ClassSections
         DriftSqlType.int,
         data['${effectivePrefix}created_at'],
       )!,
+      schoolYear: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}school_year'],
+      ),
+      sectionPin: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}section_pin'],
+      ),
     );
   }
 
@@ -170,12 +214,16 @@ class ClassSectionRow extends DataClass implements Insertable<ClassSectionRow> {
   final String sectionName;
   final String? schoolName;
   final int createdAt;
+  final String? schoolYear;
+  final String? sectionPin;
   const ClassSectionRow({
     required this.sectionId,
     this.teacherId,
     required this.sectionName,
     this.schoolName,
     required this.createdAt,
+    this.schoolYear,
+    this.sectionPin,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -189,6 +237,12 @@ class ClassSectionRow extends DataClass implements Insertable<ClassSectionRow> {
       map['school_name'] = Variable<String>(schoolName);
     }
     map['created_at'] = Variable<int>(createdAt);
+    if (!nullToAbsent || schoolYear != null) {
+      map['school_year'] = Variable<String>(schoolYear);
+    }
+    if (!nullToAbsent || sectionPin != null) {
+      map['section_pin'] = Variable<String>(sectionPin);
+    }
     return map;
   }
 
@@ -203,6 +257,12 @@ class ClassSectionRow extends DataClass implements Insertable<ClassSectionRow> {
           ? const Value.absent()
           : Value(schoolName),
       createdAt: Value(createdAt),
+      schoolYear: schoolYear == null && nullToAbsent
+          ? const Value.absent()
+          : Value(schoolYear),
+      sectionPin: sectionPin == null && nullToAbsent
+          ? const Value.absent()
+          : Value(sectionPin),
     );
   }
 
@@ -217,6 +277,8 @@ class ClassSectionRow extends DataClass implements Insertable<ClassSectionRow> {
       sectionName: serializer.fromJson<String>(json['sectionName']),
       schoolName: serializer.fromJson<String?>(json['schoolName']),
       createdAt: serializer.fromJson<int>(json['createdAt']),
+      schoolYear: serializer.fromJson<String?>(json['schoolYear']),
+      sectionPin: serializer.fromJson<String?>(json['sectionPin']),
     );
   }
   @override
@@ -228,6 +290,8 @@ class ClassSectionRow extends DataClass implements Insertable<ClassSectionRow> {
       'sectionName': serializer.toJson<String>(sectionName),
       'schoolName': serializer.toJson<String?>(schoolName),
       'createdAt': serializer.toJson<int>(createdAt),
+      'schoolYear': serializer.toJson<String?>(schoolYear),
+      'sectionPin': serializer.toJson<String?>(sectionPin),
     };
   }
 
@@ -237,12 +301,16 @@ class ClassSectionRow extends DataClass implements Insertable<ClassSectionRow> {
     String? sectionName,
     Value<String?> schoolName = const Value.absent(),
     int? createdAt,
+    Value<String?> schoolYear = const Value.absent(),
+    Value<String?> sectionPin = const Value.absent(),
   }) => ClassSectionRow(
     sectionId: sectionId ?? this.sectionId,
     teacherId: teacherId.present ? teacherId.value : this.teacherId,
     sectionName: sectionName ?? this.sectionName,
     schoolName: schoolName.present ? schoolName.value : this.schoolName,
     createdAt: createdAt ?? this.createdAt,
+    schoolYear: schoolYear.present ? schoolYear.value : this.schoolYear,
+    sectionPin: sectionPin.present ? sectionPin.value : this.sectionPin,
   );
   ClassSectionRow copyWithCompanion(ClassSectionsCompanion data) {
     return ClassSectionRow(
@@ -255,6 +323,12 @@ class ClassSectionRow extends DataClass implements Insertable<ClassSectionRow> {
           ? data.schoolName.value
           : this.schoolName,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      schoolYear: data.schoolYear.present
+          ? data.schoolYear.value
+          : this.schoolYear,
+      sectionPin: data.sectionPin.present
+          ? data.sectionPin.value
+          : this.sectionPin,
     );
   }
 
@@ -265,14 +339,23 @@ class ClassSectionRow extends DataClass implements Insertable<ClassSectionRow> {
           ..write('teacherId: $teacherId, ')
           ..write('sectionName: $sectionName, ')
           ..write('schoolName: $schoolName, ')
-          ..write('createdAt: $createdAt')
+          ..write('createdAt: $createdAt, ')
+          ..write('schoolYear: $schoolYear, ')
+          ..write('sectionPin: $sectionPin')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode =>
-      Object.hash(sectionId, teacherId, sectionName, schoolName, createdAt);
+  int get hashCode => Object.hash(
+    sectionId,
+    teacherId,
+    sectionName,
+    schoolName,
+    createdAt,
+    schoolYear,
+    sectionPin,
+  );
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -281,7 +364,9 @@ class ClassSectionRow extends DataClass implements Insertable<ClassSectionRow> {
           other.teacherId == this.teacherId &&
           other.sectionName == this.sectionName &&
           other.schoolName == this.schoolName &&
-          other.createdAt == this.createdAt);
+          other.createdAt == this.createdAt &&
+          other.schoolYear == this.schoolYear &&
+          other.sectionPin == this.sectionPin);
 }
 
 class ClassSectionsCompanion extends UpdateCompanion<ClassSectionRow> {
@@ -290,6 +375,8 @@ class ClassSectionsCompanion extends UpdateCompanion<ClassSectionRow> {
   final Value<String> sectionName;
   final Value<String?> schoolName;
   final Value<int> createdAt;
+  final Value<String?> schoolYear;
+  final Value<String?> sectionPin;
   final Value<int> rowid;
   const ClassSectionsCompanion({
     this.sectionId = const Value.absent(),
@@ -297,6 +384,8 @@ class ClassSectionsCompanion extends UpdateCompanion<ClassSectionRow> {
     this.sectionName = const Value.absent(),
     this.schoolName = const Value.absent(),
     this.createdAt = const Value.absent(),
+    this.schoolYear = const Value.absent(),
+    this.sectionPin = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   ClassSectionsCompanion.insert({
@@ -305,6 +394,8 @@ class ClassSectionsCompanion extends UpdateCompanion<ClassSectionRow> {
     required String sectionName,
     this.schoolName = const Value.absent(),
     required int createdAt,
+    this.schoolYear = const Value.absent(),
+    this.sectionPin = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : sectionId = Value(sectionId),
        sectionName = Value(sectionName),
@@ -315,6 +406,8 @@ class ClassSectionsCompanion extends UpdateCompanion<ClassSectionRow> {
     Expression<String>? sectionName,
     Expression<String>? schoolName,
     Expression<int>? createdAt,
+    Expression<String>? schoolYear,
+    Expression<String>? sectionPin,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -323,6 +416,8 @@ class ClassSectionsCompanion extends UpdateCompanion<ClassSectionRow> {
       if (sectionName != null) 'section_name': sectionName,
       if (schoolName != null) 'school_name': schoolName,
       if (createdAt != null) 'created_at': createdAt,
+      if (schoolYear != null) 'school_year': schoolYear,
+      if (sectionPin != null) 'section_pin': sectionPin,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -333,6 +428,8 @@ class ClassSectionsCompanion extends UpdateCompanion<ClassSectionRow> {
     Value<String>? sectionName,
     Value<String?>? schoolName,
     Value<int>? createdAt,
+    Value<String?>? schoolYear,
+    Value<String?>? sectionPin,
     Value<int>? rowid,
   }) {
     return ClassSectionsCompanion(
@@ -341,6 +438,8 @@ class ClassSectionsCompanion extends UpdateCompanion<ClassSectionRow> {
       sectionName: sectionName ?? this.sectionName,
       schoolName: schoolName ?? this.schoolName,
       createdAt: createdAt ?? this.createdAt,
+      schoolYear: schoolYear ?? this.schoolYear,
+      sectionPin: sectionPin ?? this.sectionPin,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -363,6 +462,12 @@ class ClassSectionsCompanion extends UpdateCompanion<ClassSectionRow> {
     if (createdAt.present) {
       map['created_at'] = Variable<int>(createdAt.value);
     }
+    if (schoolYear.present) {
+      map['school_year'] = Variable<String>(schoolYear.value);
+    }
+    if (sectionPin.present) {
+      map['section_pin'] = Variable<String>(sectionPin.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -377,6 +482,8 @@ class ClassSectionsCompanion extends UpdateCompanion<ClassSectionRow> {
           ..write('sectionName: $sectionName, ')
           ..write('schoolName: $schoolName, ')
           ..write('createdAt: $createdAt, ')
+          ..write('schoolYear: $schoolYear, ')
+          ..write('sectionPin: $sectionPin, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -496,6 +603,18 @@ class $UsersTable extends Users with TableInfo<$UsersTable, UserRow> {
     type: DriftSqlType.int,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _officialStudentIdMeta = const VerificationMeta(
+    'officialStudentId',
+  );
+  @override
+  late final GeneratedColumn<String> officialStudentId =
+      GeneratedColumn<String>(
+        'official_student_id',
+        aliasedName,
+        true,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+      );
   @override
   List<GeneratedColumn> get $columns => [
     userId,
@@ -508,6 +627,7 @@ class $UsersTable extends Users with TableInfo<$UsersTable, UserRow> {
     sectionId,
     createdAt,
     lastLoginAt,
+    officialStudentId,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -597,6 +717,15 @@ class $UsersTable extends Users with TableInfo<$UsersTable, UserRow> {
         ),
       );
     }
+    if (data.containsKey('official_student_id')) {
+      context.handle(
+        _officialStudentIdMeta,
+        officialStudentId.isAcceptableOrUnknown(
+          data['official_student_id']!,
+          _officialStudentIdMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -646,6 +775,10 @@ class $UsersTable extends Users with TableInfo<$UsersTable, UserRow> {
         DriftSqlType.int,
         data['${effectivePrefix}last_login_at'],
       ),
+      officialStudentId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}official_student_id'],
+      ),
     );
   }
 
@@ -666,6 +799,7 @@ class UserRow extends DataClass implements Insertable<UserRow> {
   final String? sectionId;
   final int createdAt;
   final int? lastLoginAt;
+  final String? officialStudentId;
   const UserRow({
     required this.userId,
     required this.role,
@@ -677,6 +811,7 @@ class UserRow extends DataClass implements Insertable<UserRow> {
     this.sectionId,
     required this.createdAt,
     this.lastLoginAt,
+    this.officialStudentId,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -700,6 +835,9 @@ class UserRow extends DataClass implements Insertable<UserRow> {
     map['created_at'] = Variable<int>(createdAt);
     if (!nullToAbsent || lastLoginAt != null) {
       map['last_login_at'] = Variable<int>(lastLoginAt);
+    }
+    if (!nullToAbsent || officialStudentId != null) {
+      map['official_student_id'] = Variable<String>(officialStudentId);
     }
     return map;
   }
@@ -726,6 +864,9 @@ class UserRow extends DataClass implements Insertable<UserRow> {
       lastLoginAt: lastLoginAt == null && nullToAbsent
           ? const Value.absent()
           : Value(lastLoginAt),
+      officialStudentId: officialStudentId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(officialStudentId),
     );
   }
 
@@ -745,6 +886,9 @@ class UserRow extends DataClass implements Insertable<UserRow> {
       sectionId: serializer.fromJson<String?>(json['sectionId']),
       createdAt: serializer.fromJson<int>(json['createdAt']),
       lastLoginAt: serializer.fromJson<int?>(json['lastLoginAt']),
+      officialStudentId: serializer.fromJson<String?>(
+        json['officialStudentId'],
+      ),
     );
   }
   @override
@@ -761,6 +905,7 @@ class UserRow extends DataClass implements Insertable<UserRow> {
       'sectionId': serializer.toJson<String?>(sectionId),
       'createdAt': serializer.toJson<int>(createdAt),
       'lastLoginAt': serializer.toJson<int?>(lastLoginAt),
+      'officialStudentId': serializer.toJson<String?>(officialStudentId),
     };
   }
 
@@ -775,6 +920,7 @@ class UserRow extends DataClass implements Insertable<UserRow> {
     Value<String?> sectionId = const Value.absent(),
     int? createdAt,
     Value<int?> lastLoginAt = const Value.absent(),
+    Value<String?> officialStudentId = const Value.absent(),
   }) => UserRow(
     userId: userId ?? this.userId,
     role: role ?? this.role,
@@ -786,6 +932,9 @@ class UserRow extends DataClass implements Insertable<UserRow> {
     sectionId: sectionId.present ? sectionId.value : this.sectionId,
     createdAt: createdAt ?? this.createdAt,
     lastLoginAt: lastLoginAt.present ? lastLoginAt.value : this.lastLoginAt,
+    officialStudentId: officialStudentId.present
+        ? officialStudentId.value
+        : this.officialStudentId,
   );
   UserRow copyWithCompanion(UsersCompanion data) {
     return UserRow(
@@ -805,6 +954,9 @@ class UserRow extends DataClass implements Insertable<UserRow> {
       lastLoginAt: data.lastLoginAt.present
           ? data.lastLoginAt.value
           : this.lastLoginAt,
+      officialStudentId: data.officialStudentId.present
+          ? data.officialStudentId.value
+          : this.officialStudentId,
     );
   }
 
@@ -820,7 +972,8 @@ class UserRow extends DataClass implements Insertable<UserRow> {
           ..write('strand: $strand, ')
           ..write('sectionId: $sectionId, ')
           ..write('createdAt: $createdAt, ')
-          ..write('lastLoginAt: $lastLoginAt')
+          ..write('lastLoginAt: $lastLoginAt, ')
+          ..write('officialStudentId: $officialStudentId')
           ..write(')'))
         .toString();
   }
@@ -837,6 +990,7 @@ class UserRow extends DataClass implements Insertable<UserRow> {
     sectionId,
     createdAt,
     lastLoginAt,
+    officialStudentId,
   );
   @override
   bool operator ==(Object other) =>
@@ -851,7 +1005,8 @@ class UserRow extends DataClass implements Insertable<UserRow> {
           other.strand == this.strand &&
           other.sectionId == this.sectionId &&
           other.createdAt == this.createdAt &&
-          other.lastLoginAt == this.lastLoginAt);
+          other.lastLoginAt == this.lastLoginAt &&
+          other.officialStudentId == this.officialStudentId);
 }
 
 class UsersCompanion extends UpdateCompanion<UserRow> {
@@ -865,6 +1020,7 @@ class UsersCompanion extends UpdateCompanion<UserRow> {
   final Value<String?> sectionId;
   final Value<int> createdAt;
   final Value<int?> lastLoginAt;
+  final Value<String?> officialStudentId;
   final Value<int> rowid;
   const UsersCompanion({
     this.userId = const Value.absent(),
@@ -877,6 +1033,7 @@ class UsersCompanion extends UpdateCompanion<UserRow> {
     this.sectionId = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.lastLoginAt = const Value.absent(),
+    this.officialStudentId = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   UsersCompanion.insert({
@@ -890,6 +1047,7 @@ class UsersCompanion extends UpdateCompanion<UserRow> {
     this.sectionId = const Value.absent(),
     required int createdAt,
     this.lastLoginAt = const Value.absent(),
+    this.officialStudentId = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : userId = Value(userId),
        role = Value(role),
@@ -907,6 +1065,7 @@ class UsersCompanion extends UpdateCompanion<UserRow> {
     Expression<String>? sectionId,
     Expression<int>? createdAt,
     Expression<int>? lastLoginAt,
+    Expression<String>? officialStudentId,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -920,6 +1079,7 @@ class UsersCompanion extends UpdateCompanion<UserRow> {
       if (sectionId != null) 'section_id': sectionId,
       if (createdAt != null) 'created_at': createdAt,
       if (lastLoginAt != null) 'last_login_at': lastLoginAt,
+      if (officialStudentId != null) 'official_student_id': officialStudentId,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -935,6 +1095,7 @@ class UsersCompanion extends UpdateCompanion<UserRow> {
     Value<String?>? sectionId,
     Value<int>? createdAt,
     Value<int?>? lastLoginAt,
+    Value<String?>? officialStudentId,
     Value<int>? rowid,
   }) {
     return UsersCompanion(
@@ -948,6 +1109,7 @@ class UsersCompanion extends UpdateCompanion<UserRow> {
       sectionId: sectionId ?? this.sectionId,
       createdAt: createdAt ?? this.createdAt,
       lastLoginAt: lastLoginAt ?? this.lastLoginAt,
+      officialStudentId: officialStudentId ?? this.officialStudentId,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -985,6 +1147,9 @@ class UsersCompanion extends UpdateCompanion<UserRow> {
     if (lastLoginAt.present) {
       map['last_login_at'] = Variable<int>(lastLoginAt.value);
     }
+    if (officialStudentId.present) {
+      map['official_student_id'] = Variable<String>(officialStudentId.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -1004,6 +1169,7 @@ class UsersCompanion extends UpdateCompanion<UserRow> {
           ..write('sectionId: $sectionId, ')
           ..write('createdAt: $createdAt, ')
           ..write('lastLoginAt: $lastLoginAt, ')
+          ..write('officialStudentId: $officialStudentId, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -7681,6 +7847,8 @@ typedef $$ClassSectionsTableCreateCompanionBuilder =
       required String sectionName,
       Value<String?> schoolName,
       required int createdAt,
+      Value<String?> schoolYear,
+      Value<String?> sectionPin,
       Value<int> rowid,
     });
 typedef $$ClassSectionsTableUpdateCompanionBuilder =
@@ -7690,6 +7858,8 @@ typedef $$ClassSectionsTableUpdateCompanionBuilder =
       Value<String> sectionName,
       Value<String?> schoolName,
       Value<int> createdAt,
+      Value<String?> schoolYear,
+      Value<String?> sectionPin,
       Value<int> rowid,
     });
 
@@ -7765,6 +7935,16 @@ class $$ClassSectionsTableFilterComposer
 
   ColumnFilters<int> get createdAt => $composableBuilder(
     column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get schoolYear => $composableBuilder(
+    column: $table.schoolYear,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get sectionPin => $composableBuilder(
+    column: $table.sectionPin,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -7846,6 +8026,16 @@ class $$ClassSectionsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get schoolYear => $composableBuilder(
+    column: $table.schoolYear,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get sectionPin => $composableBuilder(
+    column: $table.sectionPin,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   $$UsersTableOrderingComposer get teacherId {
     final $$UsersTableOrderingComposer composer = $composerBuilder(
       composer: this,
@@ -7894,6 +8084,16 @@ class $$ClassSectionsTableAnnotationComposer
 
   GeneratedColumn<int> get createdAt =>
       $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<String> get schoolYear => $composableBuilder(
+    column: $table.schoolYear,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get sectionPin => $composableBuilder(
+    column: $table.sectionPin,
+    builder: (column) => column,
+  );
 
   $$UsersTableAnnotationComposer get teacherId {
     final $$UsersTableAnnotationComposer composer = $composerBuilder(
@@ -7977,6 +8177,8 @@ class $$ClassSectionsTableTableManager
                 Value<String> sectionName = const Value.absent(),
                 Value<String?> schoolName = const Value.absent(),
                 Value<int> createdAt = const Value.absent(),
+                Value<String?> schoolYear = const Value.absent(),
+                Value<String?> sectionPin = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => ClassSectionsCompanion(
                 sectionId: sectionId,
@@ -7984,6 +8186,8 @@ class $$ClassSectionsTableTableManager
                 sectionName: sectionName,
                 schoolName: schoolName,
                 createdAt: createdAt,
+                schoolYear: schoolYear,
+                sectionPin: sectionPin,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -7993,6 +8197,8 @@ class $$ClassSectionsTableTableManager
                 required String sectionName,
                 Value<String?> schoolName = const Value.absent(),
                 required int createdAt,
+                Value<String?> schoolYear = const Value.absent(),
+                Value<String?> sectionPin = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => ClassSectionsCompanion.insert(
                 sectionId: sectionId,
@@ -8000,6 +8206,8 @@ class $$ClassSectionsTableTableManager
                 sectionName: sectionName,
                 schoolName: schoolName,
                 createdAt: createdAt,
+                schoolYear: schoolYear,
+                sectionPin: sectionPin,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
@@ -8103,6 +8311,7 @@ typedef $$UsersTableCreateCompanionBuilder =
       Value<String?> sectionId,
       required int createdAt,
       Value<int?> lastLoginAt,
+      Value<String?> officialStudentId,
       Value<int> rowid,
     });
 typedef $$UsersTableUpdateCompanionBuilder =
@@ -8117,6 +8326,7 @@ typedef $$UsersTableUpdateCompanionBuilder =
       Value<String?> sectionId,
       Value<int> createdAt,
       Value<int?> lastLoginAt,
+      Value<String?> officialStudentId,
       Value<int> rowid,
     });
 
@@ -8339,6 +8549,11 @@ class $$UsersTableFilterComposer extends Composer<_$AppDatabase, $UsersTable> {
 
   ColumnFilters<int> get lastLoginAt => $composableBuilder(
     column: $table.lastLoginAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get officialStudentId => $composableBuilder(
+    column: $table.officialStudentId,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -8620,6 +8835,11 @@ class $$UsersTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get officialStudentId => $composableBuilder(
+    column: $table.officialStudentId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   $$ClassSectionsTableOrderingComposer get sectionId {
     final $$ClassSectionsTableOrderingComposer composer = $composerBuilder(
       composer: this,
@@ -8683,6 +8903,11 @@ class $$UsersTableAnnotationComposer
 
   GeneratedColumn<int> get lastLoginAt => $composableBuilder(
     column: $table.lastLoginAt,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get officialStudentId => $composableBuilder(
+    column: $table.officialStudentId,
     builder: (column) => column,
   );
 
@@ -8958,6 +9183,7 @@ class $$UsersTableTableManager
                 Value<String?> sectionId = const Value.absent(),
                 Value<int> createdAt = const Value.absent(),
                 Value<int?> lastLoginAt = const Value.absent(),
+                Value<String?> officialStudentId = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => UsersCompanion(
                 userId: userId,
@@ -8970,6 +9196,7 @@ class $$UsersTableTableManager
                 sectionId: sectionId,
                 createdAt: createdAt,
                 lastLoginAt: lastLoginAt,
+                officialStudentId: officialStudentId,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -8984,6 +9211,7 @@ class $$UsersTableTableManager
                 Value<String?> sectionId = const Value.absent(),
                 required int createdAt,
                 Value<int?> lastLoginAt = const Value.absent(),
+                Value<String?> officialStudentId = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => UsersCompanion.insert(
                 userId: userId,
@@ -8996,6 +9224,7 @@ class $$UsersTableTableManager
                 sectionId: sectionId,
                 createdAt: createdAt,
                 lastLoginAt: lastLoginAt,
+                officialStudentId: officialStudentId,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0

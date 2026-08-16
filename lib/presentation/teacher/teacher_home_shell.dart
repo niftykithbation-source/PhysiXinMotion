@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'dashboard/dashboard_screen.dart';
-import 'lesson_plan/lesson_plan_screen.dart';
+import 'lesson_plan/lesson_plan_viewer.dart';
 import 'onboarding/teacher_guided_tour.dart';
 import 'reports/reports_export_screen.dart';
 import 'roster/roster_screen.dart';
@@ -32,7 +32,7 @@ class _TeacherHomeShellState extends ConsumerState<TeacherHomeShell> {
     const screens = [
       DashboardScreen(),
       RosterScreen(),
-      LessonPlanScreen(),
+      LessonPlanViewer(),
       ReportsExportScreen(),
     ];
 
