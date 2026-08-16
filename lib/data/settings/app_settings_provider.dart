@@ -124,6 +124,71 @@ final validatorModeControllerProvider = StateNotifierProvider<ValidatorModeContr
   return ValidatorModeController(db);
 });
 
+/// Blueprint constraint 5 — "No public student leaderboard by default.
+/// app_settings.leaderboard_visible defaults false. Teacher must
+/// explicitly opt in per class." Key matches that constraint verbatim.
+class LeaderboardVisibilityController extends StateNotifier<bool> {
+  final AppDatabase db;
+
+  LeaderboardVisibilityController(this.db) : super(false) {
+    _load();
+  }
+
+  static const _key = 'leaderboard_visible';
+
+  Future<void> _load() async {
+    final row = await (db.select(db.appSettings)..where((t) => t.key.equals(_key)))
+        .getSingleOrNull();
+    if (row != null) state = row.value == 'true';
+  }
+
+  Future<void> setEnabled(bool enabled) async {
+    state = enabled;
+    await db.into(db.appSettings).insertOnConflictUpdate(
+          AppSettingsCompanion.insert(key: _key, value: enabled ? 'true' : 'false'),
+        );
+  }
+}
+
+final leaderboardVisibilityControllerProvider =
+    StateNotifierProvider<LeaderboardVisibilityController, bool>((ref) {
+  final db = ref.watch(appDatabaseProvider);
+  return LeaderboardVisibilityController(db);
+});
+
+/// Blueprint §3.2 Settings — "Extended time" UDL accommodation toggle for
+/// timed activities. Informational for now: no Motion Lab/Evaluation
+/// screen currently enforces a hard timer, so this doesn't change behavior
+/// elsewhere in the app yet — it lets a teacher record the accommodation
+/// ahead of any future timed feature that would need to read it.
+class ExtendedTimeController extends StateNotifier<bool> {
+  final AppDatabase db;
+
+  ExtendedTimeController(this.db) : super(false) {
+    _load();
+  }
+
+  static const _key = 'settings:extended_time';
+
+  Future<void> _load() async {
+    final row = await (db.select(db.appSettings)..where((t) => t.key.equals(_key)))
+        .getSingleOrNull();
+    if (row != null) state = row.value == 'true';
+  }
+
+  Future<void> setEnabled(bool enabled) async {
+    state = enabled;
+    await db.into(db.appSettings).insertOnConflictUpdate(
+          AppSettingsCompanion.insert(key: _key, value: enabled ? 'true' : 'false'),
+        );
+  }
+}
+
+final extendedTimeControllerProvider = StateNotifierProvider<ExtendedTimeController, bool>((ref) {
+  final db = ref.watch(appDatabaseProvider);
+  return ExtendedTimeController(db);
+});
+
 /// Blueprint §7 Step 8: shared by Motion Lab and Graph Visualizer — always
 /// keeps only the most recent [SimpleGraphicsController.defaultTrialHistoryCap]
 /// trials (or the tighter [SimpleGraphicsController.capWhenEnabled] under

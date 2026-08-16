@@ -19,7 +19,19 @@ import '../widgets/feedback_badge.dart';
 /// quiz, one item per screen, progress bar. Immediate per-item feedback...
 /// Summary screen: score, badges unlocked, Review Missed Items."
 class EvaluationTerminalScreen extends ConsumerStatefulWidget {
-  const EvaluationTerminalScreen({super.key});
+  const EvaluationTerminalScreen({super.key, this.onFinished});
+
+  /// Called once the attempt is scored and persisted. Lets a host shell
+  /// (e.g. [StudentHomeShell]) surface the score in its own dialog and
+  /// redirect, on top of the in-page summary rendered below. [responses]
+  /// is this attempt's per-item answers, in submission order — used to
+  /// build the compressed `ans` string for the Teacher Portal QR scan.
+  final void Function(
+    int correctCount,
+    int totalCount,
+    GamificationOutcome? outcome,
+    List<QuizItemResponseRow> responses,
+  )? onFinished;
 
   @override
   ConsumerState<EvaluationTerminalScreen> createState() => _EvaluationTerminalScreenState();
@@ -118,6 +130,7 @@ class _EvaluationTerminalScreenState extends ConsumerState<EvaluationTerminalScr
         _finished = true;
         _submitting = false;
       });
+      widget.onFinished?.call(correctCount, items.length, outcome, List.unmodifiable(_responses));
     }
   }
 

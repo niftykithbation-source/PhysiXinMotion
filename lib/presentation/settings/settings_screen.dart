@@ -11,11 +11,15 @@ import '../validator/validator_checklist_screen.dart';
 // has no package-info dependency to read it at runtime.
 const kAppVersion = '1.0.0 (build 1)';
 
-/// Shared Settings screen shell (blueprint §3.2/§3.3). Student variant only
-/// for now — the teacher-only rows (Extended time, Class Leaderboard
-/// visibility) ship with Step 6's Teacher Portal.
+/// Shared Settings screen shell (blueprint §3.2/§3.3), reachable via a
+/// header icon from Profile & Badges (student) or the Dashboard (teacher)
+/// rather than a bottom-nav tab. [showTeacherControls] adds the
+/// teacher-only rows (Extended time, Class Leaderboard visibility) — pass
+/// true only from the Teacher Portal.
 class SettingsScreen extends ConsumerWidget {
-  const SettingsScreen({super.key});
+  const SettingsScreen({super.key, this.showTeacherControls = false});
+
+  final bool showTeacherControls;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -83,6 +87,44 @@ class SettingsScreen extends ConsumerWidget {
                 onTap: () => Navigator.of(context).push(
                   MaterialPageRoute(builder: (_) => const ValidatorChecklistScreen()),
                 ),
+              ),
+            ],
+            if (showTeacherControls) ...[
+              const SizedBox(height: 28),
+              Text('Teacher controls', style: Theme.of(context).textTheme.titleMedium),
+              const SizedBox(height: 4),
+              Consumer(
+                builder: (context, ref, _) {
+                  final extendedTime = ref.watch(extendedTimeControllerProvider);
+                  final leaderboardVisible = ref.watch(leaderboardVisibilityControllerProvider);
+                  return Column(
+                    children: [
+                      SwitchListTile(
+                        contentPadding: EdgeInsets.zero,
+                        title: const Text('Extended time'),
+                        subtitle: const Text(
+                          'UDL accommodation for timed activities. Recorded for reference — '
+                          "no screen currently enforces a hard timer.",
+                        ),
+                        value: extendedTime,
+                        onChanged: (value) =>
+                            ref.read(extendedTimeControllerProvider.notifier).setEnabled(value),
+                      ),
+                      SwitchListTile(
+                        contentPadding: EdgeInsets.zero,
+                        title: const Text('Class Leaderboard visibility'),
+                        subtitle: const Text(
+                          'Off by default (blueprint constraint 5). Turning this on makes '
+                          'student rankings visible within this class.',
+                        ),
+                        value: leaderboardVisible,
+                        onChanged: (value) => ref
+                            .read(leaderboardVisibilityControllerProvider.notifier)
+                            .setEnabled(value),
+                      ),
+                    ],
+                  );
+                },
               ),
             ],
             const SizedBox(height: 28),

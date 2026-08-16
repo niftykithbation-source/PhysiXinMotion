@@ -13,6 +13,7 @@ import '../../../data/motion_lab/motion_trials_provider.dart';
 import '../../../data/session/current_student_provider.dart';
 import '../../../data/settings/app_settings_provider.dart';
 import '../widgets/five_e_progress_pips.dart';
+import 'motion_3d_panel.dart';
 import 'trial_animation_canvas.dart';
 
 /// Student — Motion Lab (Explore, sandbox). Blueprint §3.3.
@@ -61,6 +62,12 @@ class _MotionLabScreenState extends ConsumerState<MotionLabScreen> {
                 '"Walk the Line": mark an 8-10 m path, walk it, record what you measured.',
                 style: Theme.of(context).textTheme.bodyMedium,
               ),
+              const SizedBox(height: 24),
+              const Divider(),
+              const SizedBox(height: 8),
+              const Motion3DPanel(),
+              const SizedBox(height: 8),
+              const Divider(),
               if (_animatingTrial != null) ...[
                 const SizedBox(height: 20),
                 Text('Simulation', style: Theme.of(context).textTheme.titleSmall),

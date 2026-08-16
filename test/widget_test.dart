@@ -16,7 +16,7 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [appDatabaseProvider.overrideWithValue(db)],
-        child: const PhysixInMotionApp(),
+        child: const PhysiXInMotionApp(),
       ),
     );
 
