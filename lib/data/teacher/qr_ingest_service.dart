@@ -35,7 +35,7 @@ class QrIngestResult {
 /// Ingests the compressed QR payload produced by the Student Portal's
 /// "Show My QR Code" / Evaluate-stage score dialog (see
 /// _buildStudentQrPayload in student_home_shell.dart:
-/// {userId, studentId, sectionPin, studentName, quizScore, ans, labTrials,
+/// {userId, studentId, sectionPin, quizScore, ans, labTrials,
 /// completionPct, generatedAt}).
 ///
 /// This is a lighter-weight sibling of [TeacherImportService], which
@@ -49,6 +49,11 @@ class QrIngestResult {
 /// (Cronbach's Alpha, most-missed item) and the per-question breakdown on
 /// the student detail screen. If `ans` is missing or the wrong length,
 /// ingestion falls back to a summary-only quiz_attempts row.
+///
+/// The payload deliberately carries no display name (a real-device scan
+/// test found the name was the largest single contributor to QR density —
+/// see the payload builder's doc comment) — [_upsertStudent] resolves it
+/// from whatever roster entry already matches this studentId/userId.
 class QrIngestService {
   final AppDatabase db;
 
@@ -83,7 +88,6 @@ class QrIngestService {
     }
 
     final payloadUserId = (payload['userId'] as String?)?.trim();
-    final studentName = (payload['studentName'] as String?)?.trim();
     final quizScore = (payload['quizScore'] as String?) ?? 'Not attempted';
     final ans = payload['ans'] as String?;
     final labTrials = payload['labTrials'] is int ? payload['labTrials'] as int : null;
@@ -94,7 +98,6 @@ class QrIngestService {
       final student = await _upsertStudent(
         payloadUserId: payloadUserId,
         studentId: studentId,
-        studentName: studentName,
         sectionId: section.sectionId,
       );
 
@@ -118,7 +121,6 @@ class QrIngestService {
   Future<UserRow> _upsertStudent({
     required String? payloadUserId,
     required String studentId,
-    required String? studentName,
     required String sectionId,
   }) async {
     // Primary match: the exact userId from the student's own device — the
@@ -145,14 +147,13 @@ class QrIngestService {
           ))
         .getSingleOrNull();
 
+    // The QR payload never carries a display name (see this file's own doc
+    // comment) — an existing roster match keeps whatever name is already
+    // on file rather than being overwritten by anything from the scan.
     if (existing != null) {
       final matchedId = existing.userId;
-      final resolvedName = (studentName != null && studentName.isNotEmpty)
-          ? studentName
-          : existing.displayName;
       await (db.update(db.users)..where((t) => t.userId.equals(matchedId))).write(
         UsersCompanion(
-          displayName: Value(resolvedName),
           officialStudentId: Value(studentId),
           sectionId: Value(sectionId),
         ),
@@ -160,14 +161,16 @@ class QrIngestService {
       return (db.select(db.users)..where((t) => t.userId.equals(matchedId))).getSingle();
     }
 
+    // No roster entry to resolve a name from — this is a student the
+    // teacher has never added or scanned before. Falls back to a generic
+    // placeholder; the teacher can rename via the roster's "Add Student" /
+    // edit flow once they know who this is.
     final newUserId =
         (payloadUserId != null && payloadUserId.isNotEmpty) ? payloadUserId : const Uuid().v4();
     await db.into(db.users).insert(UsersCompanion.insert(
           userId: newUserId,
           role: 'student',
-          displayName: (studentName != null && studentName.isNotEmpty)
-              ? studentName
-              : 'Scanned Student',
+          displayName: 'Scanned Student ($studentId)',
           pinHash: '',
           officialStudentId: Value(studentId),
           sectionId: Value(sectionId),

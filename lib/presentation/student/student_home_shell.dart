@@ -51,7 +51,6 @@ import 'trip_tracker/trip_tracker_screen.dart';
 //      "userId": string,        // Users.user_id on the student's own device
 //      "studentId": string,     // StudentProfile.studentId (LRN / class number)
 //      "sectionPin": string,    // StudentProfile.sectionPin
-//      "studentName": string,   // Users.display_name
 //      "quizScore": string,     // "correct/total", e.g. "8/10"
 //      "ans": string,           // 10 chars, one per quiz item — see (2)
 //      "labTrials": int,        // Motion Lab trial count (display-only,
@@ -95,7 +94,12 @@ import 'trip_tracker/trip_tracker_screen.dart';
 //         then studentId/userId against Users (see QrIngestService's own
 //         doc comment for the exact matching precedence — userId first,
 //         then officialStudentId+section, so it never conflates two
-//         same-named students).
+//         same-named students). The display name is never carried in the
+//         QR itself (removed to keep the payload small and avoid encoding
+//         a student's full name into a scannable code) — it's resolved
+//         from whatever's already on that roster entry, or a generic
+//         placeholder for a student the teacher has never added/scanned
+//         before.
 //      b. Upserts a summary quiz_attempts row from `quizScore`.
 //      c. Re-derives orderQuizItemsByNumber() locally and walks `ans`
 //         character-by-character, upserting one quiz_item_responses row
@@ -279,7 +283,6 @@ class _StudentHomeShellState extends ConsumerState<StudentHomeShell> {
     final profile = ref.read(studentProfileProvider).valueOrNull ?? StudentProfile.empty;
     final userId =
         previousStats?.student.userId ?? ref.read(currentStudentProvider).valueOrNull?.userId ?? '';
-    final studentName = previousStats?.student.displayName ?? '';
     final labTrials = previousStats?.labTrialsCount ?? 0;
     // Compressed per-item answer string for the QR (see
     // qr_ingest_service.dart's `ans` handling) — built straight from this
@@ -336,13 +339,11 @@ class _StudentHomeShellState extends ConsumerState<StudentHomeShell> {
                       userId: userId,
                       studentId: profile.studentId,
                       sectionPin: profile.sectionPin,
-                      studentName: studentName,
                       quizScore: '$correctCount/$totalCount',
                       ans: ans,
                       labTrials: labTrials,
                       completionPct: completionPct,
                     ),
-                    size: 160,
                   ),
                 ),
                 const SizedBox(height: 8),
@@ -500,11 +501,17 @@ void _showProfileRequiredDialog(BuildContext context) {
 /// 10-character string, one letter per quiz item in
 /// [orderQuizItemsByNumber] order (see [_buildAnsString]) — small enough
 /// to still fit a single QR frame.
+///
+/// Deliberately does NOT carry the student's display name — a real device
+/// scan test (worst-case name, this app's actual QR sizes) showed name
+/// length was the single largest contributor to payload size, pushing the
+/// rendered code into a denser QR version than the display size can
+/// reliably scan. The teacher side resolves the name from its own roster
+/// (matched by studentId/userId — see QrIngestService) instead.
 String _buildStudentQrPayload({
   required String userId,
   required String studentId,
   required String sectionPin,
-  required String studentName,
   required String quizScore,
   required String ans,
   required int labTrials,
@@ -514,7 +521,6 @@ String _buildStudentQrPayload({
     'userId': userId,
     'studentId': studentId,
     'sectionPin': sectionPin,
-    'studentName': studentName,
     'quizScore': quizScore,
     'ans': ans,
     'labTrials': labTrials,
@@ -523,25 +529,49 @@ String _buildStudentQrPayload({
   });
 }
 
+/// Minimum logical size for the student's QR code, used consistently by
+/// every display site (the Dashboard's "Show My QR Code" dialog and the
+/// automatic post-Evaluate popup). A real-device scan test measured actual
+/// module density at this app's old sizes (160/200px) on a 440dpi phone
+/// and found both landed under ~0.5mm/module — too dense to scan reliably
+/// screen-to-screen. 220px keeps density meaningfully above that floor;
+/// do not shrink below it without re-measuring (see
+/// test/presentation/student_qr_code_test.dart).
+const kStudentQrDisplaySize = 220.0;
+
 /// Renders [payload] (see [_buildStudentQrPayload]) as a QR code. Always
 /// drawn on a white backing regardless of app theme — QR scanners need a
 /// light quiet zone and dark-module contrast that a dark-mode background
 /// would break.
+///
+/// Explicitly sized (width/height, not just the inner QrImageView's `size`)
+/// so the whole subtree presents a tight width to its AlertDialog ancestor.
+/// QrImageView builds a LayoutBuilder internally, and AlertDialog's content
+/// sizing queries intrinsic width on its content column — Flutter hard-
+/// forbids querying intrinsic dimensions through a LayoutBuilder
+/// ("LayoutBuilder does not support returning intrinsic dimensions"),
+/// which crashes both dialogs that embed this widget without this fixed
+/// size. A widget test caught this (see
+/// test/presentation/student_qr_code_test.dart) — there was no prior
+/// coverage of either QR dialog actually rendering.
 class _StudentQrCode extends StatelessWidget {
-  const _StudentQrCode({required this.payload, this.size = 200});
+  const _StudentQrCode({required this.payload});
 
   final String payload;
-  final double size;
+
+  static const _outerSize = kStudentQrDisplaySize + 24; // + Container's 12px padding per side
 
   @override
   Widget build(BuildContext context) {
     return Container(
+      width: _outerSize,
+      height: _outerSize,
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(8)),
       child: QrImageView(
         data: payload,
         version: QrVersions.auto,
-        size: size,
+        size: kStudentQrDisplaySize,
         backgroundColor: Colors.white,
       ),
     );
@@ -556,7 +586,6 @@ void _showQrCodeDialog(
   BuildContext context, {
   required String studentId,
   required String sectionPin,
-  required String studentName,
   required String quizScore,
   required String? ans,
   required int labTrials,
@@ -567,7 +596,6 @@ void _showQrCodeDialog(
     userId: userId,
     studentId: studentId,
     sectionPin: sectionPin,
-    studentName: studentName,
     quizScore: quizScore,
     ans: ans ?? '',
     labTrials: labTrials,
@@ -784,6 +812,7 @@ class _DashboardBody extends StatelessWidget {
           SizedBox(
             width: double.infinity,
             child: OutlinedButton.icon(
+              key: const Key('showMyQrCodeButton'),
               icon: const Icon(Icons.qr_code_2),
               label: const Text('Show My QR Code'),
               onPressed: () => _showQrCodeDialog(
@@ -791,7 +820,6 @@ class _DashboardBody extends StatelessWidget {
                 userId: stats.student.userId,
                 studentId: profile.studentId,
                 sectionPin: profile.sectionPin,
-                studentName: stats.student.displayName,
                 quizScore: quizScoreLabel,
                 ans: stats.latestAnsString,
                 labTrials: stats.labTrialsCount,
