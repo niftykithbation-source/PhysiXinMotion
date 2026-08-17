@@ -7,23 +7,26 @@ workflows:
       flutter: stable
       xcode: latest
       cocoapods: default
-      groups:
-        - app_store_credentials   # create this group in Codemagic UI: App Store Connect API key
       vars:
         BUNDLE_ID: "com.physixinmotion.physixInMotion"   # matches ios/Runner.xcodeproj's PRODUCT_BUNDLE_IDENTIFIER
     scripts:
       - name: Get Flutter packages
         script: flutter pub get
-      - name: Set up code signing (automatic, via App Store Connect API key)
+      # Unsigned build for AltStore/SideStore sideload distribution — no
+      # Apple Developer account, App Store Connect API key, or TestFlight
+      # involved anywhere in this pipeline. AltStore/SideStore re-sign the
+      # .app locally on each user's own device with THEIR OWN free Apple
+      # ID at install time; this build only needs to produce the unsigned
+      # .app bundle for that to work.
+      - name: Build unsigned .app (no Apple signing)
         script: |
-          xcode-project use-profiles
-      - name: Build IPA for TestFlight
+          flutter build ios --release --no-codesign
+      - name: Zip Runner.app for sideload distribution
         script: |
-          flutter build ipa --release \
-            --export-options-plist=/Users/builder/export_options.plist
+          cd build/ios/iphoneos
+          zip -r Runner.app.zip Runner.app
     artifacts:
-      - build/ios/ipa/*.ipa
-      - build/ios/xcarchive
+      - build/ios/iphoneos/Runner.app.zip
     publishing:
       email:
         recipients:
@@ -31,11 +34,6 @@ workflows:
         notify:
           success: true
           failure: true
-      app_store_connect:
-        auth: integration            # uses the app_store_credentials group above
-        submit_to_testflight: true
-        beta_groups:
-          - PhysiX Pilot Testers      # create this TestFlight external group in App Store Connect first
 
   android-workflow:
     name: PhysiX in Motion — Android
