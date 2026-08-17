@@ -441,7 +441,9 @@ class _TeacherAnswerKeyCard extends StatelessWidget {
             children: [
               Icon(Icons.vpn_key_outlined, size: 16, color: colors.primaryAccent),
               const SizedBox(width: 6),
-              Text('Teacher answer key', style: Theme.of(context).textTheme.labelLarge),
+              Expanded(
+                child: Text('Teacher answer key', style: Theme.of(context).textTheme.labelLarge),
+              ),
             ],
           ),
           const SizedBox(height: 8),
@@ -494,6 +496,14 @@ class _SampleWorkedTrialsTable extends StatelessWidget {
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       child: Table(
+        // Table's default column-sizing strategy (FlexColumnWidth) needs a
+        // bounded incoming width to resolve flex fractions against — inside
+        // a horizontally-scrolling SingleChildScrollView the incoming width
+        // is unbounded, so every column collapsed to zero width and each
+        // cell's Text wrapped one character per line. IntrinsicColumnWidth
+        // sizes each column from its own content instead, which works
+        // regardless of the parent's width constraint.
+        defaultColumnWidth: const IntrinsicColumnWidth(),
         border: TableBorder.all(color: colors.textPrimary.withValues(alpha: 0.15)),
         defaultVerticalAlignment: TableCellVerticalAlignment.middle,
         children: [
@@ -583,7 +593,9 @@ class _AnswerKeySection extends StatelessWidget {
             children: [
               Icon(Icons.vpn_key_outlined, size: 18, color: colors.primaryAccent),
               const SizedBox(width: 8),
-              Text('Answer Key (teacher only)', style: Theme.of(context).textTheme.titleSmall),
+              Expanded(
+                child: Text('Answer Key (teacher only)', style: Theme.of(context).textTheme.titleSmall),
+              ),
             ],
           ),
           const SizedBox(height: 8),
