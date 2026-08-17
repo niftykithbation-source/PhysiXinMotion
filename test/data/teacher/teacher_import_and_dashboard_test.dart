@@ -113,21 +113,24 @@ void main() {
                 'submittedAt': 1000,
               },
             ],
+      // kMotionLabMinTrials (stage_progress_repository.dart) is 3 — matches
+      // "Walk the Line"'s real structure, not just "any trial exists".
       'motion_trials': !exploreComplete
           ? []
           : [
-              {
-                'trialId': '$userId-trial1',
-                'userId': userId,
-                'groupId': null,
-                'trialNumber': 1,
-                'distanceM': 8.0,
-                'displacementM': 8.0,
-                'timeS': 4.0,
-                'computedSpeed': 2.0,
-                'computedVelocity': 2.0,
-                'recordedAt': 1000,
-              },
+              for (var trialNumber = 1; trialNumber <= 3; trialNumber++)
+                {
+                  'trialId': '$userId-trial$trialNumber',
+                  'userId': userId,
+                  'groupId': null,
+                  'trialNumber': trialNumber,
+                  'distanceM': 8.0,
+                  'displacementM': 8.0,
+                  'timeS': 4.0,
+                  'computedSpeed': 2.0,
+                  'computedVelocity': 2.0,
+                  'recordedAt': 1000 + trialNumber,
+                },
             ],
       'mission_attempts': [
         {

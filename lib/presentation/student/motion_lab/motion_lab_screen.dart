@@ -11,6 +11,7 @@ import '../../../data/db/database.dart';
 import '../../../data/db/database_provider.dart';
 import '../../../data/motion_lab/motion_trials_provider.dart';
 import '../../../data/session/current_student_provider.dart';
+import '../../../data/session/stage_progress_repository.dart' show kMotionLabMaxTrials, kMotionLabMinTrials;
 import '../../../data/settings/app_settings_provider.dart';
 import '../widgets/five_e_progress_pips.dart';
 import 'trial_animation_canvas.dart';
@@ -36,6 +37,32 @@ class _MotionLabScreenState extends ConsumerState<MotionLabScreen> {
     });
   }
 
+  /// Deletes [trial] and renumbers the remaining trials to stay
+  /// contiguous (1..N) — _AddTrialForm's next trial number is derived
+  /// from the current trial count, so a gap left by a mid-list delete
+  /// would otherwise produce a duplicate trial_number on the next add.
+  Future<void> _removeTrial(MotionTrialRow trial) async {
+    final db = ref.read(appDatabaseProvider);
+    await (db.delete(db.motionTrials)..where((t) => t.trialId.equals(trial.trialId))).go();
+
+    final remaining = await (db.select(db.motionTrials)
+          ..where((t) => t.userId.equals(trial.userId!))
+          ..orderBy([(t) => OrderingTerm.asc(t.trialNumber)]))
+        .get();
+    for (var i = 0; i < remaining.length; i++) {
+      final newNumber = i + 1;
+      if (remaining[i].trialNumber != newNumber) {
+        await (db.update(db.motionTrials)..where((t) => t.trialId.equals(remaining[i].trialId)))
+            .write(MotionTrialsCompanion(trialNumber: Value(newNumber)));
+      }
+    }
+
+    ref.invalidate(studentMotionTrialsProvider);
+    if (_animatingTrial?.trialId == trial.trialId) {
+      setState(() => _animatingTrial = null);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final trialsAsync = ref.watch(studentMotionTrialsProvider);
@@ -52,7 +79,9 @@ class _MotionLabScreenState extends ConsumerState<MotionLabScreen> {
               FiveEProgressPips(
                 current: 'explore',
                 completedStages: trialsAsync.maybeWhen(
-                  data: (trials) => trials.isNotEmpty ? const {'engage', 'explore'} : const {'engage'},
+                  data: (trials) => trials.length >= kMotionLabMinTrials
+                      ? const {'engage', 'explore'}
+                      : const {'engage'},
                   orElse: () => const {},
                 ),
               ),
@@ -86,17 +115,22 @@ class _MotionLabScreenState extends ConsumerState<MotionLabScreen> {
                   trials: capTrialHistory(trials, simpleGraphics: simpleGraphics),
                   totalCount: trials.length,
                   onReplay: _playTrial,
+                  onRemove: _removeTrial,
                 ),
                 orElse: () => const SizedBox.shrink(),
               ),
               const SizedBox(height: 20),
-              _AddTrialForm(onTrialAdded: _playTrial),
+              _AddTrialForm(
+                trialCount: trialsAsync.maybeWhen(data: (trials) => trials.length, orElse: () => 0),
+                onTrialAdded: _playTrial,
+              ),
               const SizedBox(height: 24),
               SizedBox(
                 width: double.infinity,
                 child: OutlinedButton(
                   onPressed: trialsAsync.maybeWhen(
-                    data: (trials) => trials.isNotEmpty ? widget.onSendToGraphVisualizer : null,
+                    data: (trials) =>
+                        trials.length >= kMotionLabMinTrials ? widget.onSendToGraphVisualizer : null,
                     orElse: () => null,
                   ),
                   child: const Text('Send to Graph Visualizer'),
@@ -164,11 +198,17 @@ class _MotionLabChart extends StatelessWidget {
 }
 
 class _TrialList extends StatelessWidget {
-  const _TrialList({required this.trials, required this.totalCount, required this.onReplay});
+  const _TrialList({
+    required this.trials,
+    required this.totalCount,
+    required this.onReplay,
+    required this.onRemove,
+  });
 
   final List<MotionTrialRow> trials;
   final int totalCount;
   final void Function(MotionTrialRow trial) onReplay;
+  final void Function(MotionTrialRow trial) onRemove;
 
   @override
   Widget build(BuildContext context) {
@@ -194,10 +234,20 @@ class _TrialList extends StatelessWidget {
                 'time ${trial.timeS} s · '
                 'v: ${trial.computedVelocity?.toStringAsFixed(2) ?? '-'} m/s',
               ),
-              trailing: IconButton(
-                icon: const Icon(Icons.play_circle_outline),
-                tooltip: 'Replay simulation',
-                onPressed: () => onReplay(trial),
+              trailing: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.play_circle_outline),
+                    tooltip: 'Replay simulation',
+                    onPressed: () => onReplay(trial),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.delete_outline),
+                    tooltip: 'Remove trial',
+                    onPressed: () => onRemove(trial),
+                  ),
+                ],
               ),
               onTap: () => onReplay(trial),
             ),
@@ -208,8 +258,9 @@ class _TrialList extends StatelessWidget {
 }
 
 class _AddTrialForm extends ConsumerStatefulWidget {
-  const _AddTrialForm({required this.onTrialAdded});
+  const _AddTrialForm({required this.trialCount, required this.onTrialAdded});
 
+  final int trialCount;
   final void Function(MotionTrialRow trial) onTrialAdded;
 
   @override
@@ -233,6 +284,7 @@ class _AddTrialFormState extends ConsumerState<_AddTrialForm> {
 
   @override
   Widget build(BuildContext context) {
+    final atMax = widget.trialCount >= kMotionLabMaxTrials;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -259,11 +311,18 @@ class _AddTrialFormState extends ConsumerState<_AddTrialForm> {
           const SizedBox(height: 8),
           Text(_error!, style: const TextStyle(color: Colors.red)),
         ],
+        if (atMax) ...[
+          const SizedBox(height: 8),
+          const Text(
+            'Maximum 5 trials — remove one to add another.',
+            style: TextStyle(color: Colors.red),
+          ),
+        ],
         const SizedBox(height: 12),
         SizedBox(
           width: double.infinity,
           child: ElevatedButton(
-            onPressed: _submitting ? null : _submit,
+            onPressed: (_submitting || atMax) ? null : _submit,
             child: const Text('Add Trial'),
           ),
         ),

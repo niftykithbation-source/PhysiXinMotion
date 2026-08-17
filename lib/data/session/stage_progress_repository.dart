@@ -7,13 +7,27 @@ import '../gamification/module_interaction_tracker.dart';
 /// constraint and drives the shared progress-pip indicator.
 const kFiveEStages = ['engage', 'explore', 'explain', 'elaborate', 'evaluate'];
 
+/// "Walk the Line"'s real structure (blueprint §3.3): a student must record
+/// at least this many trials before Explore is complete / Explain unlocks.
+const kMotionLabMinTrials = 3;
+
+/// Upper bound on how many trials Motion Lab accepts — beyond
+/// [kMotionLabMinTrials], more trials are allowed but never required.
+const kMotionLabMaxTrials = 5;
+
 /// Determines which 5E stages a student has completed, for the progress
 /// pips shown on Student Portal screens and for Step 5.6's
 /// completion-triggered auto-backup. Each stage's "complete" signal is the
 /// most direct evidence the current schema offers for that stage:
 /// - engage: a prediction_log row exists for this pack's engage stage
-/// - explore: at least one motion_trials row exists (not pack-scoped in
-///   the schema, so this is per-user rather than per-pack)
+/// - explore: at least [kMotionLabMinTrials] motion_trials rows exist (not
+///   pack-scoped in the schema, so this is per-user rather than per-pack)
+///   — matches "Walk the Line"'s real structure (blueprint §3.3): 3
+///   trials required, up to 5 allowed but never required, and completion
+///   triggers the moment the 3rd lands, not before and not held back
+///   waiting for a 4th/5th. Monotonic in trial count, so a student who
+///   goes on to record a 4th or 5th trial after unlocking Explain stays
+///   unlocked — this never re-evaluates to false once true.
 /// - explain: Graph Visualizer has been opened at least once
 ///   (module_interaction_tracker — see Step 4's flagged schema gap)
 /// - elaborate: a correct mission_attempts row exists for both mission
@@ -39,11 +53,8 @@ class StageProgressRepository {
       if (prediction != null) completed.add('engage');
     }
 
-    final anyTrial = await (db.select(db.motionTrials)
-          ..where((t) => t.userId.equals(userId))
-          ..limit(1))
-        .getSingleOrNull();
-    if (anyTrial != null) completed.add('explore');
+    final trials = await (db.select(db.motionTrials)..where((t) => t.userId.equals(userId))).get();
+    if (trials.length >= kMotionLabMinTrials) completed.add('explore');
 
     final graphViews =
         await _moduleInteractions.viewCount(userId: userId, moduleKey: 'graph_visualizer');
