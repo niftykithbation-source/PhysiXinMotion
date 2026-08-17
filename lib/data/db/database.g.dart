@@ -2158,6 +2158,17 @@ class $QuizItemsTable extends QuizItems
     $customConstraints:
         'CHECK (difficulty IN (\'easy\',\'average\',\'difficult\'))',
   );
+  static const VerificationMeta _teacherFormulaMeta = const VerificationMeta(
+    'teacherFormula',
+  );
+  @override
+  late final GeneratedColumn<String> teacherFormula = GeneratedColumn<String>(
+    'teacher_formula',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   @override
   List<GeneratedColumn> get $columns => [
     itemId,
@@ -2171,6 +2182,7 @@ class $QuizItemsTable extends QuizItems
     explanation,
     tosCompetency,
     difficulty,
+    teacherFormula,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -2270,6 +2282,15 @@ class $QuizItemsTable extends QuizItems
         difficulty.isAcceptableOrUnknown(data['difficulty']!, _difficultyMeta),
       );
     }
+    if (data.containsKey('teacher_formula')) {
+      context.handle(
+        _teacherFormulaMeta,
+        teacherFormula.isAcceptableOrUnknown(
+          data['teacher_formula']!,
+          _teacherFormulaMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -2323,6 +2344,10 @@ class $QuizItemsTable extends QuizItems
         DriftSqlType.string,
         data['${effectivePrefix}difficulty'],
       ),
+      teacherFormula: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}teacher_formula'],
+      ),
     );
   }
 
@@ -2344,6 +2369,7 @@ class QuizItemRow extends DataClass implements Insertable<QuizItemRow> {
   final String? explanation;
   final String? tosCompetency;
   final String? difficulty;
+  final String? teacherFormula;
   const QuizItemRow({
     required this.itemId,
     this.packId,
@@ -2356,6 +2382,7 @@ class QuizItemRow extends DataClass implements Insertable<QuizItemRow> {
     this.explanation,
     this.tosCompetency,
     this.difficulty,
+    this.teacherFormula,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -2384,6 +2411,9 @@ class QuizItemRow extends DataClass implements Insertable<QuizItemRow> {
     }
     if (!nullToAbsent || difficulty != null) {
       map['difficulty'] = Variable<String>(difficulty);
+    }
+    if (!nullToAbsent || teacherFormula != null) {
+      map['teacher_formula'] = Variable<String>(teacherFormula);
     }
     return map;
   }
@@ -2415,6 +2445,9 @@ class QuizItemRow extends DataClass implements Insertable<QuizItemRow> {
       difficulty: difficulty == null && nullToAbsent
           ? const Value.absent()
           : Value(difficulty),
+      teacherFormula: teacherFormula == null && nullToAbsent
+          ? const Value.absent()
+          : Value(teacherFormula),
     );
   }
 
@@ -2435,6 +2468,7 @@ class QuizItemRow extends DataClass implements Insertable<QuizItemRow> {
       explanation: serializer.fromJson<String?>(json['explanation']),
       tosCompetency: serializer.fromJson<String?>(json['tosCompetency']),
       difficulty: serializer.fromJson<String?>(json['difficulty']),
+      teacherFormula: serializer.fromJson<String?>(json['teacherFormula']),
     );
   }
   @override
@@ -2452,6 +2486,7 @@ class QuizItemRow extends DataClass implements Insertable<QuizItemRow> {
       'explanation': serializer.toJson<String?>(explanation),
       'tosCompetency': serializer.toJson<String?>(tosCompetency),
       'difficulty': serializer.toJson<String?>(difficulty),
+      'teacherFormula': serializer.toJson<String?>(teacherFormula),
     };
   }
 
@@ -2467,6 +2502,7 @@ class QuizItemRow extends DataClass implements Insertable<QuizItemRow> {
     Value<String?> explanation = const Value.absent(),
     Value<String?> tosCompetency = const Value.absent(),
     Value<String?> difficulty = const Value.absent(),
+    Value<String?> teacherFormula = const Value.absent(),
   }) => QuizItemRow(
     itemId: itemId ?? this.itemId,
     packId: packId.present ? packId.value : this.packId,
@@ -2481,6 +2517,9 @@ class QuizItemRow extends DataClass implements Insertable<QuizItemRow> {
         ? tosCompetency.value
         : this.tosCompetency,
     difficulty: difficulty.present ? difficulty.value : this.difficulty,
+    teacherFormula: teacherFormula.present
+        ? teacherFormula.value
+        : this.teacherFormula,
   );
   QuizItemRow copyWithCompanion(QuizItemsCompanion data) {
     return QuizItemRow(
@@ -2505,6 +2544,9 @@ class QuizItemRow extends DataClass implements Insertable<QuizItemRow> {
       difficulty: data.difficulty.present
           ? data.difficulty.value
           : this.difficulty,
+      teacherFormula: data.teacherFormula.present
+          ? data.teacherFormula.value
+          : this.teacherFormula,
     );
   }
 
@@ -2521,7 +2563,8 @@ class QuizItemRow extends DataClass implements Insertable<QuizItemRow> {
           ..write('tolerance: $tolerance, ')
           ..write('explanation: $explanation, ')
           ..write('tosCompetency: $tosCompetency, ')
-          ..write('difficulty: $difficulty')
+          ..write('difficulty: $difficulty, ')
+          ..write('teacherFormula: $teacherFormula')
           ..write(')'))
         .toString();
   }
@@ -2539,6 +2582,7 @@ class QuizItemRow extends DataClass implements Insertable<QuizItemRow> {
     explanation,
     tosCompetency,
     difficulty,
+    teacherFormula,
   );
   @override
   bool operator ==(Object other) =>
@@ -2554,7 +2598,8 @@ class QuizItemRow extends DataClass implements Insertable<QuizItemRow> {
           other.tolerance == this.tolerance &&
           other.explanation == this.explanation &&
           other.tosCompetency == this.tosCompetency &&
-          other.difficulty == this.difficulty);
+          other.difficulty == this.difficulty &&
+          other.teacherFormula == this.teacherFormula);
 }
 
 class QuizItemsCompanion extends UpdateCompanion<QuizItemRow> {
@@ -2569,6 +2614,7 @@ class QuizItemsCompanion extends UpdateCompanion<QuizItemRow> {
   final Value<String?> explanation;
   final Value<String?> tosCompetency;
   final Value<String?> difficulty;
+  final Value<String?> teacherFormula;
   final Value<int> rowid;
   const QuizItemsCompanion({
     this.itemId = const Value.absent(),
@@ -2582,6 +2628,7 @@ class QuizItemsCompanion extends UpdateCompanion<QuizItemRow> {
     this.explanation = const Value.absent(),
     this.tosCompetency = const Value.absent(),
     this.difficulty = const Value.absent(),
+    this.teacherFormula = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   QuizItemsCompanion.insert({
@@ -2596,6 +2643,7 @@ class QuizItemsCompanion extends UpdateCompanion<QuizItemRow> {
     this.explanation = const Value.absent(),
     this.tosCompetency = const Value.absent(),
     this.difficulty = const Value.absent(),
+    this.teacherFormula = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : itemId = Value(itemId),
        itemType = Value(itemType),
@@ -2613,6 +2661,7 @@ class QuizItemsCompanion extends UpdateCompanion<QuizItemRow> {
     Expression<String>? explanation,
     Expression<String>? tosCompetency,
     Expression<String>? difficulty,
+    Expression<String>? teacherFormula,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -2627,6 +2676,7 @@ class QuizItemsCompanion extends UpdateCompanion<QuizItemRow> {
       if (explanation != null) 'explanation': explanation,
       if (tosCompetency != null) 'tos_competency': tosCompetency,
       if (difficulty != null) 'difficulty': difficulty,
+      if (teacherFormula != null) 'teacher_formula': teacherFormula,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -2643,6 +2693,7 @@ class QuizItemsCompanion extends UpdateCompanion<QuizItemRow> {
     Value<String?>? explanation,
     Value<String?>? tosCompetency,
     Value<String?>? difficulty,
+    Value<String?>? teacherFormula,
     Value<int>? rowid,
   }) {
     return QuizItemsCompanion(
@@ -2657,6 +2708,7 @@ class QuizItemsCompanion extends UpdateCompanion<QuizItemRow> {
       explanation: explanation ?? this.explanation,
       tosCompetency: tosCompetency ?? this.tosCompetency,
       difficulty: difficulty ?? this.difficulty,
+      teacherFormula: teacherFormula ?? this.teacherFormula,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -2697,6 +2749,9 @@ class QuizItemsCompanion extends UpdateCompanion<QuizItemRow> {
     if (difficulty.present) {
       map['difficulty'] = Variable<String>(difficulty.value);
     }
+    if (teacherFormula.present) {
+      map['teacher_formula'] = Variable<String>(teacherFormula.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -2717,6 +2772,7 @@ class QuizItemsCompanion extends UpdateCompanion<QuizItemRow> {
           ..write('explanation: $explanation, ')
           ..write('tosCompetency: $tosCompetency, ')
           ..write('difficulty: $difficulty, ')
+          ..write('teacherFormula: $teacherFormula, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -2848,6 +2904,17 @@ class $MissionLevelsTable extends MissionLevels
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _teacherSolutionMeta = const VerificationMeta(
+    'teacherSolution',
+  );
+  @override
+  late final GeneratedColumn<String> teacherSolution = GeneratedColumn<String>(
+    'teacher_solution',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   @override
   List<GeneratedColumn> get $columns => [
     levelId,
@@ -2861,6 +2928,7 @@ class $MissionLevelsTable extends MissionLevels
     tolerance,
     formulaHint,
     unit,
+    teacherSolution,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -2972,6 +3040,15 @@ class $MissionLevelsTable extends MissionLevels
         unit.isAcceptableOrUnknown(data['unit']!, _unitMeta),
       );
     }
+    if (data.containsKey('teacher_solution')) {
+      context.handle(
+        _teacherSolutionMeta,
+        teacherSolution.isAcceptableOrUnknown(
+          data['teacher_solution']!,
+          _teacherSolutionMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -3025,6 +3102,10 @@ class $MissionLevelsTable extends MissionLevels
         DriftSqlType.string,
         data['${effectivePrefix}unit'],
       ),
+      teacherSolution: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}teacher_solution'],
+      ),
     );
   }
 
@@ -3046,6 +3127,7 @@ class MissionLevelRow extends DataClass implements Insertable<MissionLevelRow> {
   final double tolerance;
   final String? formulaHint;
   final String? unit;
+  final String? teacherSolution;
   const MissionLevelRow({
     required this.levelId,
     this.packId,
@@ -3058,6 +3140,7 @@ class MissionLevelRow extends DataClass implements Insertable<MissionLevelRow> {
     required this.tolerance,
     this.formulaHint,
     this.unit,
+    this.teacherSolution,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -3079,6 +3162,9 @@ class MissionLevelRow extends DataClass implements Insertable<MissionLevelRow> {
     if (!nullToAbsent || unit != null) {
       map['unit'] = Variable<String>(unit);
     }
+    if (!nullToAbsent || teacherSolution != null) {
+      map['teacher_solution'] = Variable<String>(teacherSolution);
+    }
     return map;
   }
 
@@ -3099,6 +3185,9 @@ class MissionLevelRow extends DataClass implements Insertable<MissionLevelRow> {
           ? const Value.absent()
           : Value(formulaHint),
       unit: unit == null && nullToAbsent ? const Value.absent() : Value(unit),
+      teacherSolution: teacherSolution == null && nullToAbsent
+          ? const Value.absent()
+          : Value(teacherSolution),
     );
   }
 
@@ -3119,6 +3208,7 @@ class MissionLevelRow extends DataClass implements Insertable<MissionLevelRow> {
       tolerance: serializer.fromJson<double>(json['tolerance']),
       formulaHint: serializer.fromJson<String?>(json['formulaHint']),
       unit: serializer.fromJson<String?>(json['unit']),
+      teacherSolution: serializer.fromJson<String?>(json['teacherSolution']),
     );
   }
   @override
@@ -3136,6 +3226,7 @@ class MissionLevelRow extends DataClass implements Insertable<MissionLevelRow> {
       'tolerance': serializer.toJson<double>(tolerance),
       'formulaHint': serializer.toJson<String?>(formulaHint),
       'unit': serializer.toJson<String?>(unit),
+      'teacherSolution': serializer.toJson<String?>(teacherSolution),
     };
   }
 
@@ -3151,6 +3242,7 @@ class MissionLevelRow extends DataClass implements Insertable<MissionLevelRow> {
     double? tolerance,
     Value<String?> formulaHint = const Value.absent(),
     Value<String?> unit = const Value.absent(),
+    Value<String?> teacherSolution = const Value.absent(),
   }) => MissionLevelRow(
     levelId: levelId ?? this.levelId,
     packId: packId.present ? packId.value : this.packId,
@@ -3163,6 +3255,9 @@ class MissionLevelRow extends DataClass implements Insertable<MissionLevelRow> {
     tolerance: tolerance ?? this.tolerance,
     formulaHint: formulaHint.present ? formulaHint.value : this.formulaHint,
     unit: unit.present ? unit.value : this.unit,
+    teacherSolution: teacherSolution.present
+        ? teacherSolution.value
+        : this.teacherSolution,
   );
   MissionLevelRow copyWithCompanion(MissionLevelsCompanion data) {
     return MissionLevelRow(
@@ -3189,6 +3284,9 @@ class MissionLevelRow extends DataClass implements Insertable<MissionLevelRow> {
           ? data.formulaHint.value
           : this.formulaHint,
       unit: data.unit.present ? data.unit.value : this.unit,
+      teacherSolution: data.teacherSolution.present
+          ? data.teacherSolution.value
+          : this.teacherSolution,
     );
   }
 
@@ -3205,7 +3303,8 @@ class MissionLevelRow extends DataClass implements Insertable<MissionLevelRow> {
           ..write('correctAnswer: $correctAnswer, ')
           ..write('tolerance: $tolerance, ')
           ..write('formulaHint: $formulaHint, ')
-          ..write('unit: $unit')
+          ..write('unit: $unit, ')
+          ..write('teacherSolution: $teacherSolution')
           ..write(')'))
         .toString();
   }
@@ -3223,6 +3322,7 @@ class MissionLevelRow extends DataClass implements Insertable<MissionLevelRow> {
     tolerance,
     formulaHint,
     unit,
+    teacherSolution,
   );
   @override
   bool operator ==(Object other) =>
@@ -3238,7 +3338,8 @@ class MissionLevelRow extends DataClass implements Insertable<MissionLevelRow> {
           other.correctAnswer == this.correctAnswer &&
           other.tolerance == this.tolerance &&
           other.formulaHint == this.formulaHint &&
-          other.unit == this.unit);
+          other.unit == this.unit &&
+          other.teacherSolution == this.teacherSolution);
 }
 
 class MissionLevelsCompanion extends UpdateCompanion<MissionLevelRow> {
@@ -3253,6 +3354,7 @@ class MissionLevelsCompanion extends UpdateCompanion<MissionLevelRow> {
   final Value<double> tolerance;
   final Value<String?> formulaHint;
   final Value<String?> unit;
+  final Value<String?> teacherSolution;
   final Value<int> rowid;
   const MissionLevelsCompanion({
     this.levelId = const Value.absent(),
@@ -3266,6 +3368,7 @@ class MissionLevelsCompanion extends UpdateCompanion<MissionLevelRow> {
     this.tolerance = const Value.absent(),
     this.formulaHint = const Value.absent(),
     this.unit = const Value.absent(),
+    this.teacherSolution = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   MissionLevelsCompanion.insert({
@@ -3280,6 +3383,7 @@ class MissionLevelsCompanion extends UpdateCompanion<MissionLevelRow> {
     this.tolerance = const Value.absent(),
     this.formulaHint = const Value.absent(),
     this.unit = const Value.absent(),
+    this.teacherSolution = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : levelId = Value(levelId),
        levelNumber = Value(levelNumber),
@@ -3300,6 +3404,7 @@ class MissionLevelsCompanion extends UpdateCompanion<MissionLevelRow> {
     Expression<double>? tolerance,
     Expression<String>? formulaHint,
     Expression<String>? unit,
+    Expression<String>? teacherSolution,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -3314,6 +3419,7 @@ class MissionLevelsCompanion extends UpdateCompanion<MissionLevelRow> {
       if (tolerance != null) 'tolerance': tolerance,
       if (formulaHint != null) 'formula_hint': formulaHint,
       if (unit != null) 'unit': unit,
+      if (teacherSolution != null) 'teacher_solution': teacherSolution,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -3330,6 +3436,7 @@ class MissionLevelsCompanion extends UpdateCompanion<MissionLevelRow> {
     Value<double>? tolerance,
     Value<String?>? formulaHint,
     Value<String?>? unit,
+    Value<String?>? teacherSolution,
     Value<int>? rowid,
   }) {
     return MissionLevelsCompanion(
@@ -3344,6 +3451,7 @@ class MissionLevelsCompanion extends UpdateCompanion<MissionLevelRow> {
       tolerance: tolerance ?? this.tolerance,
       formulaHint: formulaHint ?? this.formulaHint,
       unit: unit ?? this.unit,
+      teacherSolution: teacherSolution ?? this.teacherSolution,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -3384,6 +3492,9 @@ class MissionLevelsCompanion extends UpdateCompanion<MissionLevelRow> {
     if (unit.present) {
       map['unit'] = Variable<String>(unit.value);
     }
+    if (teacherSolution.present) {
+      map['teacher_solution'] = Variable<String>(teacherSolution.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -3404,6 +3515,7 @@ class MissionLevelsCompanion extends UpdateCompanion<MissionLevelRow> {
           ..write('tolerance: $tolerance, ')
           ..write('formulaHint: $formulaHint, ')
           ..write('unit: $unit, ')
+          ..write('teacherSolution: $teacherSolution, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -10651,6 +10763,7 @@ typedef $$QuizItemsTableCreateCompanionBuilder =
       Value<String?> explanation,
       Value<String?> tosCompetency,
       Value<String?> difficulty,
+      Value<String?> teacherFormula,
       Value<int> rowid,
     });
 typedef $$QuizItemsTableUpdateCompanionBuilder =
@@ -10666,6 +10779,7 @@ typedef $$QuizItemsTableUpdateCompanionBuilder =
       Value<String?> explanation,
       Value<String?> tosCompetency,
       Value<String?> difficulty,
+      Value<String?> teacherFormula,
       Value<int> rowid,
     });
 
@@ -10783,6 +10897,11 @@ class $$QuizItemsTableFilterComposer
 
   ColumnFilters<String> get difficulty => $composableBuilder(
     column: $table.difficulty,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get teacherFormula => $composableBuilder(
+    column: $table.teacherFormula,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -10912,6 +11031,11 @@ class $$QuizItemsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get teacherFormula => $composableBuilder(
+    column: $table.teacherFormula,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   $$ContentPacksTableOrderingComposer get packId {
     final $$ContentPacksTableOrderingComposer composer = $composerBuilder(
       composer: this,
@@ -11002,6 +11126,11 @@ class $$QuizItemsTableAnnotationComposer
 
   GeneratedColumn<String> get difficulty => $composableBuilder(
     column: $table.difficulty,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get teacherFormula => $composableBuilder(
+    column: $table.teacherFormula,
     builder: (column) => column,
   );
 
@@ -11121,6 +11250,7 @@ class $$QuizItemsTableTableManager
                 Value<String?> explanation = const Value.absent(),
                 Value<String?> tosCompetency = const Value.absent(),
                 Value<String?> difficulty = const Value.absent(),
+                Value<String?> teacherFormula = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => QuizItemsCompanion(
                 itemId: itemId,
@@ -11134,6 +11264,7 @@ class $$QuizItemsTableTableManager
                 explanation: explanation,
                 tosCompetency: tosCompetency,
                 difficulty: difficulty,
+                teacherFormula: teacherFormula,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -11149,6 +11280,7 @@ class $$QuizItemsTableTableManager
                 Value<String?> explanation = const Value.absent(),
                 Value<String?> tosCompetency = const Value.absent(),
                 Value<String?> difficulty = const Value.absent(),
+                Value<String?> teacherFormula = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => QuizItemsCompanion.insert(
                 itemId: itemId,
@@ -11162,6 +11294,7 @@ class $$QuizItemsTableTableManager
                 explanation: explanation,
                 tosCompetency: tosCompetency,
                 difficulty: difficulty,
+                teacherFormula: teacherFormula,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
@@ -11290,6 +11423,7 @@ typedef $$MissionLevelsTableCreateCompanionBuilder =
       Value<double> tolerance,
       Value<String?> formulaHint,
       Value<String?> unit,
+      Value<String?> teacherSolution,
       Value<int> rowid,
     });
 typedef $$MissionLevelsTableUpdateCompanionBuilder =
@@ -11305,6 +11439,7 @@ typedef $$MissionLevelsTableUpdateCompanionBuilder =
       Value<double> tolerance,
       Value<String?> formulaHint,
       Value<String?> unit,
+      Value<String?> teacherSolution,
       Value<int> rowid,
     });
 
@@ -11411,6 +11546,11 @@ class $$MissionLevelsTableFilterComposer
 
   ColumnFilters<String> get unit => $composableBuilder(
     column: $table.unit,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get teacherSolution => $composableBuilder(
+    column: $table.teacherSolution,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -11522,6 +11662,11 @@ class $$MissionLevelsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get teacherSolution => $composableBuilder(
+    column: $table.teacherSolution,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   $$ContentPacksTableOrderingComposer get packId {
     final $$ContentPacksTableOrderingComposer composer = $composerBuilder(
       composer: this,
@@ -11596,6 +11741,11 @@ class $$MissionLevelsTableAnnotationComposer
 
   GeneratedColumn<String> get unit =>
       $composableBuilder(column: $table.unit, builder: (column) => column);
+
+  GeneratedColumn<String> get teacherSolution => $composableBuilder(
+    column: $table.teacherSolution,
+    builder: (column) => column,
+  );
 
   $$ContentPacksTableAnnotationComposer get packId {
     final $$ContentPacksTableAnnotationComposer composer = $composerBuilder(
@@ -11685,6 +11835,7 @@ class $$MissionLevelsTableTableManager
                 Value<double> tolerance = const Value.absent(),
                 Value<String?> formulaHint = const Value.absent(),
                 Value<String?> unit = const Value.absent(),
+                Value<String?> teacherSolution = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => MissionLevelsCompanion(
                 levelId: levelId,
@@ -11698,6 +11849,7 @@ class $$MissionLevelsTableTableManager
                 tolerance: tolerance,
                 formulaHint: formulaHint,
                 unit: unit,
+                teacherSolution: teacherSolution,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -11713,6 +11865,7 @@ class $$MissionLevelsTableTableManager
                 Value<double> tolerance = const Value.absent(),
                 Value<String?> formulaHint = const Value.absent(),
                 Value<String?> unit = const Value.absent(),
+                Value<String?> teacherSolution = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => MissionLevelsCompanion.insert(
                 levelId: levelId,
@@ -11726,6 +11879,7 @@ class $$MissionLevelsTableTableManager
                 tolerance: tolerance,
                 formulaHint: formulaHint,
                 unit: unit,
+                teacherSolution: teacherSolution,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0

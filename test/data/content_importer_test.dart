@@ -39,6 +39,7 @@ Map<String, dynamic> _validPack() {
         'explanation': 'Because A.',
         'tos_competency': 'test competency',
         'difficulty': 'easy',
+        'teacher_formula': 'formula for q$i',
       };
     }),
     'mission_levels': [
@@ -51,6 +52,10 @@ Map<String, dynamic> _validPack() {
         'target_variable': 'v',
         'correct_answer': 10.0,
         'tolerance': 0.2,
+        'teacher_solution': {
+          'given': 'v0 = 0, a = 2, t = 5',
+          'steps': ['v = v0 + a*t', 'v = 0 + 2(5)', 'v = 10.0'],
+        },
       },
       {
         'level_id': 'level_2',
@@ -61,6 +66,10 @@ Map<String, dynamic> _validPack() {
         'target_variable': 'a',
         'correct_answer': -3.0,
         'tolerance': 0.2,
+        'teacher_solution': {
+          'given': 'v0 = 15, v = 0, t = 5',
+          'steps': ['a = (v - v0) / t', 'a = (0 - 15) / 5', 'a = -3.0'],
+        },
       },
     ],
     'badges': [

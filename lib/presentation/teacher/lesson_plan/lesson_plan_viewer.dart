@@ -272,6 +272,7 @@ class _StageConcepts extends StatelessWidget {
       case 'engage':
         final predictionOptions =
             (body['prediction_options'] as List).cast<Map<String, dynamic>>();
+        final teacherAnswerKey = body['teacher_answer_key'] as Map<String, dynamic>?;
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -284,10 +285,24 @@ class _StageConcepts extends StatelessWidget {
               '${predictionOptions.map((o) => o['label']).join(', ')}',
               style: Theme.of(context).textTheme.bodySmall,
             ),
+            if (teacherAnswerKey != null) ...[
+              const SizedBox(height: 12),
+              _TeacherAnswerKeyCard(
+                children: [
+                  Text(teacherAnswerKey['answer'] as String),
+                  const SizedBox(height: 8),
+                  _TeachingNote(teacherAnswerKey['teaching_note'] as String),
+                ],
+              ),
+            ],
           ],
         );
 
       case 'explore':
+        final teacherAnswerKey = body['teacher_answer_key'] as Map<String, dynamic>?;
+        final sampleTrials = teacherAnswerKey == null
+            ? const <Map<String, dynamic>>[]
+            : (teacherAnswerKey['sample_worked_trials'] as List).cast<Map<String, dynamic>>();
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -298,12 +313,23 @@ class _StageConcepts extends StatelessWidget {
               'auto-computes: ${(body['auto_computed_fields'] as List).join(', ')}',
               style: Theme.of(context).textTheme.bodySmall,
             ),
+            if (teacherAnswerKey != null) ...[
+              const SizedBox(height: 12),
+              _TeacherAnswerKeyCard(
+                children: [
+                  _SampleWorkedTrialsTable(trials: sampleTrials),
+                  const SizedBox(height: 8),
+                  _TeachingNote(teacherAnswerKey['teaching_note'] as String),
+                ],
+              ),
+            ],
           ],
         );
 
       case 'explain':
         final definitions = (body['definitions'] as List).cast<Map<String, dynamic>>();
         final equations = (body['kinematic_equations'] as List).cast<Map<String, dynamic>>();
+        final teacherAnswerKey = body['teacher_answer_key'] as Map<String, dynamic>?;
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -328,6 +354,19 @@ class _StageConcepts extends StatelessWidget {
                     ),
                 ],
               ),
+            if (teacherAnswerKey != null) ...[
+              const SizedBox(height: 4),
+              _TeacherAnswerKeyCard(
+                children: [
+                  for (final line
+                      in (teacherAnswerKey['graph_reading_summary'] as List).cast<String>())
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 4),
+                      child: Text('• $line'),
+                    ),
+                ],
+              ),
+            ],
           ],
         );
 
@@ -344,9 +383,18 @@ class _StageConcepts extends StatelessWidget {
                   for (final level in levels)
                     Padding(
                       padding: const EdgeInsets.only(bottom: 6),
-                      child: Text(
-                        'Level ${level.levelNumber}: ${level.title} — solve for '
-                        '${level.targetVariable}${level.unit != null ? ' (${level.unit})' : ''}',
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Level ${level.levelNumber}: ${level.title} — solve for '
+                            '${level.targetVariable}${level.unit != null ? ' (${level.unit})' : ''}',
+                          ),
+                          if (level.teacherSolution != null)
+                            _TeacherAnswerKeyCard(
+                              children: [_TeacherSolutionBlock(rawTeacherSolution: level.teacherSolution!)],
+                            ),
+                        ],
                       ),
                     ),
                 ],
@@ -363,6 +411,150 @@ class _StageConcepts extends StatelessWidget {
       default:
         return const SizedBox.shrink();
     }
+  }
+}
+
+/// Teacher-only shaded card wrapping any block of Answer Key content —
+/// same visual language as [_AnswerKeySection] below, reused per-stage so
+/// engage/explore/explain teacher_answer_key content reads as clearly
+/// teacher-facing, not part of the student-visible lesson copy.
+class _TeacherAnswerKeyCard extends StatelessWidget {
+  const _TeacherAnswerKeyCard({required this.children});
+
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = AppColors.of(context);
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(top: 4),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: colors.surfaceCard,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.vpn_key_outlined, size: 16, color: colors.primaryAccent),
+              const SizedBox(width: 6),
+              Text('Teacher answer key', style: Theme.of(context).textTheme.labelLarge),
+            ],
+          ),
+          const SizedBox(height: 8),
+          ...children,
+        ],
+      ),
+    );
+  }
+}
+
+class _TeachingNote extends StatelessWidget {
+  const _TeachingNote(this.text);
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = AppColors.of(context);
+    return Text(
+      text,
+      style: TextStyle(
+        color: colors.textPrimary.withValues(alpha: 0.7),
+        fontStyle: FontStyle.italic,
+        fontSize: 12,
+      ),
+    );
+  }
+}
+
+/// Renders explore stage's teacher_answer_key.sample_worked_trials as a
+/// table. Trial 3 (zero net velocity, non-zero average speed) is the
+/// pedagogically load-bearing row — its own teaching_note is shown
+/// separately by the caller, not dropped here.
+class _SampleWorkedTrialsTable extends StatelessWidget {
+  const _SampleWorkedTrialsTable({required this.trials});
+
+  final List<Map<String, dynamic>> trials;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = AppColors.of(context);
+    final headerStyle = Theme.of(context).textTheme.labelSmall?.copyWith(fontWeight: FontWeight.bold);
+    final cellStyle = Theme.of(context).textTheme.bodySmall;
+
+    Widget cell(String text, {TextStyle? style}) => Padding(
+          padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 8),
+          child: Text(text, style: style),
+        );
+
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Table(
+        border: TableBorder.all(color: colors.textPrimary.withValues(alpha: 0.15)),
+        defaultVerticalAlignment: TableCellVerticalAlignment.middle,
+        children: [
+          TableRow(
+            decoration: BoxDecoration(color: colors.surfaceCard),
+            children: [
+              cell('Trial', style: headerStyle),
+              cell('Movement', style: headerStyle),
+              cell('d_total (m)', style: headerStyle),
+              cell('Δx (m)', style: headerStyle),
+              cell('t (s)', style: headerStyle),
+              cell('s_avg (m/s)', style: headerStyle),
+              cell('v_avg (m/s)', style: headerStyle),
+            ],
+          ),
+          for (final trial in trials)
+            TableRow(
+              children: [
+                cell('${trial['trial']}', style: cellStyle),
+                cell('${trial['movement']}', style: cellStyle),
+                cell('${trial['d_total_m']}', style: cellStyle),
+                cell('${trial['delta_x_m']}', style: cellStyle),
+                cell('${trial['time_s']}', style: cellStyle),
+                cell('${trial['s_avg_mps']}', style: cellStyle),
+                cell('${trial['v_avg_mps']}', style: cellStyle),
+              ],
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Renders a mission level's teacher_solution (given + numbered steps) —
+/// decoded here from the re-encoded JSON string stored in
+/// MissionLevelRow.teacherSolution (see content_pack.dart /
+/// content_validator.dart Step 2.3).
+class _TeacherSolutionBlock extends StatelessWidget {
+  const _TeacherSolutionBlock({required this.rawTeacherSolution});
+
+  final String rawTeacherSolution;
+
+  @override
+  Widget build(BuildContext context) {
+    final solution = jsonDecode(rawTeacherSolution) as Map<String, dynamic>;
+    final steps = (solution['steps'] as List).cast<String>();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Given: ${solution['given']}',
+          style: const TextStyle(fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 4),
+        for (final step in steps)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 2),
+            child: Text(step, style: const TextStyle(fontFamily: 'monospace')),
+          ),
+      ],
+    );
   }
 }
 
@@ -437,6 +629,18 @@ class _AnswerKeyRow extends StatelessWidget {
               child: Text(
                 item.explanation!,
                 style: TextStyle(color: colors.textPrimary.withValues(alpha: 0.7), fontSize: 12),
+              ),
+            ),
+          if (item.teacherFormula != null)
+            Padding(
+              padding: const EdgeInsets.only(top: 2),
+              child: Text(
+                'Formula: ${item.teacherFormula!}',
+                style: TextStyle(
+                  color: colors.primaryAccent,
+                  fontFamily: 'monospace',
+                  fontSize: 12,
+                ),
               ),
             ),
         ],

@@ -58,6 +58,7 @@ class ContentImporter {
               explanation: Value(item.explanation),
               tosCompetency: Value(item.tosCompetency),
               difficulty: Value(item.difficulty),
+              teacherFormula: Value(item.teacherFormula),
             ));
       }
 
@@ -74,6 +75,7 @@ class ContentImporter {
               tolerance: Value(level.tolerance),
               formulaHint: Value(level.formulaHint),
               unit: Value(level.unit),
+              teacherSolution: Value(level.teacherSolution),
             ));
       }
 

@@ -33,7 +33,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 3;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -44,6 +44,12 @@ class AppDatabase extends _$AppDatabase {
             await m.addColumn(users, users.officialStudentId);
             await m.addColumn(classSections, classSections.schoolYear);
             await m.addColumn(classSections, classSections.sectionPin);
+          }
+          // v2 -> v3: teacher-only answer-key content (nullable, additive
+          // columns only — see tables.dart).
+          if (from < 3) {
+            await m.addColumn(quizItems, quizItems.teacherFormula);
+            await m.addColumn(missionLevels, missionLevels.teacherSolution);
           }
         },
       );

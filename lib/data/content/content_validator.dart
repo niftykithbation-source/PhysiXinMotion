@@ -11,6 +11,11 @@ class ContentValidator {
   /// The five kinematic variables the Step 3 SUVAT solver is scoped to.
   static const kinematicVariables = {'v0', 'v', 'a', 't', 'd'};
 
+  /// Stages whose body_json must carry a teacher_answer_key (the Elaborate
+  /// and Evaluate stages have their own teacher-facing content instead:
+  /// mission_levels.teacher_solution and quiz_items.teacher_formula).
+  static const stagesRequiringTeacherAnswerKey = {'engage', 'explore', 'explain'};
+
   /// Parses [rawJson] and runs all integrity checks. Returns the parsed
   /// pack on success; throws [ContentValidationException] on the first
   /// failure, naming the specific field and item responsible.
@@ -63,6 +68,38 @@ class ContentValidator {
           level.levelId,
           'target_variable "${level.targetVariable}" is not one of '
               '{${kinematicVariables.join(', ')}}.',
+        );
+      }
+
+      final teacherSolution = level.teacherSolution;
+      if (teacherSolution == null || (jsonDecode(teacherSolution) as Map).isEmpty) {
+        throw ContentValidationException(
+          'mission_levels.teacher_solution',
+          level.levelId,
+          'teacher_solution is missing or empty.',
+        );
+      }
+    }
+
+    for (final item in pack.quizItems) {
+      if (item.teacherFormula == null || item.teacherFormula!.trim().isEmpty) {
+        throw ContentValidationException(
+          'quiz_items.teacher_formula',
+          item.itemId,
+          'teacher_formula is missing or empty.',
+        );
+      }
+    }
+
+    for (final stage in pack.lessonStages) {
+      if (!stagesRequiringTeacherAnswerKey.contains(stage.stageName)) continue;
+      final body = jsonDecode(stage.bodyJson) as Map<String, dynamic>;
+      final teacherAnswerKey = body['teacher_answer_key'];
+      if (teacherAnswerKey is! Map || teacherAnswerKey.isEmpty) {
+        throw ContentValidationException(
+          'lesson_stages.teacher_answer_key',
+          stage.stageId,
+          'stage_name "${stage.stageName}" requires a non-empty teacher_answer_key in body_json.',
         );
       }
     }

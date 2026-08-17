@@ -116,6 +116,7 @@ class QuizItemData {
   final String? explanation;
   final String? tosCompetency;
   final String? difficulty;
+  final String? teacherFormula;
 
   const QuizItemData({
     required this.itemId,
@@ -128,6 +129,7 @@ class QuizItemData {
     required this.explanation,
     required this.tosCompetency,
     required this.difficulty,
+    required this.teacherFormula,
   });
 
   factory QuizItemData.fromJson(Map<String, dynamic> json, int index) {
@@ -162,6 +164,7 @@ class QuizItemData {
       explanation: json['explanation'] as String?,
       tosCompetency: json['tos_competency'] as String?,
       difficulty: json['difficulty'] as String?,
+      teacherFormula: json['teacher_formula'] as String?,
     );
   }
 }
@@ -177,6 +180,7 @@ class MissionLevelData {
   final double tolerance;
   final String? formulaHint;
   final String? unit;
+  final String? teacherSolution; // re-encoded JSON, stored as TEXT
 
   const MissionLevelData({
     required this.levelId,
@@ -189,6 +193,7 @@ class MissionLevelData {
     required this.tolerance,
     required this.formulaHint,
     required this.unit,
+    required this.teacherSolution,
   });
 
   factory MissionLevelData.fromJson(Map<String, dynamic> json, int index) {
@@ -206,6 +211,9 @@ class MissionLevelData {
           : (json['tolerance'] as num).toDouble(),
       formulaHint: json['formula_hint'] as String?,
       unit: json['unit'] as String?,
+      teacherSolution: json['teacher_solution'] is Map<String, dynamic>
+          ? jsonEncode(json['teacher_solution'] as Map<String, dynamic>)
+          : null,
     );
   }
 }

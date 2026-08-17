@@ -96,6 +96,10 @@ class QuizItems extends Table {
   TextColumn get difficulty => text()
       .nullable()
       .customConstraint("CHECK (difficulty IN ('easy','average','difficult'))")();
+  // Schema v3 — teacher-only worked-solution string shown in the Lesson
+  // Plan viewer's Answer Key (blueprint §3.3), alongside `explanation`.
+  // Nullable/additive: not in blueprint §5's original SQL.
+  TextColumn get teacherFormula => text().nullable()();
 
   @override
   Set<Column> get primaryKey => {itemId};
@@ -117,6 +121,11 @@ class MissionLevels extends Table {
   // §3.3: "given values"/answer unit) — an additive, nullable extension.
   TextColumn get formulaHint => text().nullable()();
   TextColumn get unit => text().nullable()();
+  // Schema v3 — teacher-only worked solution (given values + numbered
+  // steps), re-encoded JSON stored as TEXT, shown in the Lesson Plan
+  // viewer's Elaborate section. Nullable/additive: not in blueprint §5's
+  // original SQL.
+  TextColumn get teacherSolution => text().nullable()();
 
   @override
   Set<Column> get primaryKey => {levelId};

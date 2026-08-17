@@ -40,6 +40,7 @@ Map<String, dynamic> _validPack() {
         'explanation': 'Because A.',
         'tos_competency': 'test competency',
         'difficulty': 'easy',
+        'teacher_formula': 'formula for q$i',
       };
     }),
     'mission_levels': [
@@ -52,6 +53,10 @@ Map<String, dynamic> _validPack() {
         'target_variable': 'v',
         'correct_answer': 10.0,
         'tolerance': 0.2,
+        'teacher_solution': {
+          'given': 'v0 = 0, a = 2, t = 5',
+          'steps': ['v = v0 + a*t', 'v = 0 + 2(5)', 'v = 10.0'],
+        },
       },
       {
         'level_id': 'level_2',
@@ -62,6 +67,10 @@ Map<String, dynamic> _validPack() {
         'target_variable': 'a',
         'correct_answer': -3.0,
         'tolerance': 0.2,
+        'teacher_solution': {
+          'given': 'v0 = 15, v = 0, t = 5',
+          'steps': ['a = (v - v0) / t', 'a = (0 - 15) / 5', 'a = -3.0'],
+        },
       },
     ],
     'badges': [
@@ -148,6 +157,55 @@ void main() {
           isA<ContentValidationException>()
               .having((e) => e.field, 'field', 'mission_levels.target_variable')
               .having((e) => e.itemId, 'itemId', 'level_1'),
+        ),
+      );
+    });
+
+    test('rejects a quiz item with an empty teacher_formula', () {
+      final json = _validPack();
+      (json['quiz_items'] as List)[4]['teacher_formula'] = '';
+
+      expect(
+        () => ContentValidator.validate(jsonEncode(json)),
+        throwsA(
+          isA<ContentValidationException>()
+              .having((e) => e.field, 'field', 'quiz_items.teacher_formula')
+              .having((e) => e.itemId, 'itemId', 'q4'),
+        ),
+      );
+    });
+
+    test('rejects a mission level with a missing teacher_solution', () {
+      final json = _validPack();
+      (json['mission_levels'] as List)[1].remove('teacher_solution');
+
+      expect(
+        () => ContentValidator.validate(jsonEncode(json)),
+        throwsA(
+          isA<ContentValidationException>()
+              .having((e) => e.field, 'field', 'mission_levels.teacher_solution')
+              .having((e) => e.itemId, 'itemId', 'level_2'),
+        ),
+      );
+    });
+
+    test('rejects an engage/explore/explain lesson stage with a missing teacher_answer_key', () {
+      final json = _validPack();
+      (json['lesson_stages'] as List).add({
+        'stage_id': 'test_engage',
+        'stage_name': 'engage',
+        'module_key': 'trip_tracker',
+        'sequence_order': 0,
+        'display_title': 'Trip Tracker',
+        'body_json': {'hook_question': 'Which arrives first?'},
+      });
+
+      expect(
+        () => ContentValidator.validate(jsonEncode(json)),
+        throwsA(
+          isA<ContentValidationException>()
+              .having((e) => e.field, 'field', 'lesson_stages.teacher_answer_key')
+              .having((e) => e.itemId, 'itemId', 'test_engage'),
         ),
       );
     });

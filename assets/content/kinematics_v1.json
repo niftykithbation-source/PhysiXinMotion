@@ -7,7 +7,6 @@
     "grade_level": "Grade 11 STEM",
     "quarter": "Quarter 1: Measurements and Translational Kinematics"
   },
-
   "lesson_stages": [
     {
       "stage_id": "kinematics_v1_engage",
@@ -16,19 +15,41 @@
       "sequence_order": 1,
       "display_title": "Trip Tracker: Habal-habal vs. Jeepney",
       "body_json": {
-        "hook_question": "Between a habal-habal (motorcycle taxi) and a jeepney leaving Barangay Poblacion at the same time along the same route, which one really arrives first \u2014 and does 'faster' always mean the same thing as 'covers more distance'?",
+        "hook_question": "Between a habal-habal (motorcycle taxi) and a jeepney leaving Barangay Poblacion at the same time along the same route, which one really arrives first — and does 'faster' always mean the same thing as 'covers more distance'?",
         "scenario": "Two vehicle icons travel a straight local route. The jeepney takes a longer, winding path along its usual stops; the habal-habal takes a shorter, more direct path.",
         "prediction_prompt": "Which vehicle do you think arrives first?",
         "prediction_options": [
-          { "key": "habal_habal", "label": "Habal-habal" },
-          { "key": "jeepney", "label": "Jeepney" },
-          { "key": "tie", "label": "They arrive at the same time" }
+          {
+            "key": "habal_habal",
+            "label": "Habal-habal"
+          },
+          {
+            "key": "jeepney",
+            "label": "Jeepney"
+          },
+          {
+            "key": "tie",
+            "label": "They arrive at the same time"
+          }
         ],
         "reasoning_options": [
-          { "key": "covers_more_distance", "label": "It covers more distance" },
-          { "key": "is_faster", "label": "It's faster" },
-          { "key": "changes_direction_less", "label": "It changes direction less" }
-        ]
+          {
+            "key": "covers_more_distance",
+            "label": "It covers more distance"
+          },
+          {
+            "key": "is_faster",
+            "label": "It's faster"
+          },
+          {
+            "key": "changes_direction_less",
+            "label": "It changes direction less"
+          }
+        ],
+        "teacher_answer_key": {
+          "answer": "No. Speed is a scalar quantity (distance divided by time). A vehicle taking a longer, winding route can still cover more distance at a higher speed, but its displacement — the straight-line distance from start to finish — may end up equal to or less than a vehicle that travels a shorter, more direct path. This is the core distinction the lesson builds toward: distance/speed describe how much ground was covered, displacement/velocity describe the net change in position.",
+          "teaching_note": "There is no single 'correct' predicted winner — the point of this stage is surfacing the distance-vs-displacement misconception before instruction, not testing it. Accept any prediction; the value is in the reasoning students give (see prediction_options' reasoning_options) and in returning to this same clip once vectors are formally defined in Explain."
+        }
       }
     },
     {
@@ -39,10 +60,55 @@
       "display_title": "Motion Lab: Walk the Line",
       "body_json": {
         "activity_name": "Walk the Line",
-        "instructions": "Mark an 8\u201310 meter path (hallway or classroom aisle). In groups of 4\u20135, walk the path at a steady pace, then walk forward and back to the start. Measure and record the distance covered, the displacement, and the time taken for each trial using a tape measure and stopwatch.",
-        "input_fields": ["distance_m", "displacement_m", "time_s"],
-        "auto_computed_fields": ["speed", "velocity"],
-        "output_chart": "displacement_time_graph"
+        "instructions": "Mark an 8–10 meter path (hallway or classroom aisle). In groups of 4–5, walk the path at a steady pace, then walk forward and back to the start. Measure and record the distance covered, the displacement, and the time taken for each trial using a tape measure and stopwatch.",
+        "input_fields": [
+          "distance_m",
+          "displacement_m",
+          "time_s"
+        ],
+        "auto_computed_fields": [
+          "speed",
+          "velocity"
+        ],
+        "output_chart": "displacement_time_graph",
+        "teacher_answer_key": {
+          "formulas_used": [
+            "Total distance (d_total) = d_forward + d_back",
+            "Net displacement (delta_x) = x_final - x_initial",
+            "Average speed (s_avg) = d_total / t_total",
+            "Average velocity (v_avg) = delta_x / t_total"
+          ],
+          "sample_worked_trials": [
+            {
+              "trial": 1,
+              "movement": "Walk 8 m forward",
+              "d_total_m": 8.0,
+              "delta_x_m": 8.0,
+              "time_s": 4.0,
+              "s_avg_mps": 2.0,
+              "v_avg_mps": 2.0
+            },
+            {
+              "trial": 2,
+              "movement": "Walk 8 m forward, 3 m back",
+              "d_total_m": 11.0,
+              "delta_x_m": 5.0,
+              "time_s": 5.5,
+              "s_avg_mps": 2.0,
+              "v_avg_mps": 0.91
+            },
+            {
+              "trial": 3,
+              "movement": "Walk 8 m forward, 8 m back",
+              "d_total_m": 16.0,
+              "delta_x_m": 0.0,
+              "time_s": 8.0,
+              "s_avg_mps": 2.0,
+              "v_avg_mps": 0.0
+            }
+          ],
+          "teaching_note": "Trial 3 is the pedagogically important row: constant, non-zero average speed (2.00 m/s — the student never stopped moving) alongside zero average velocity (they returned to the start). This is the single clearest classroom demonstration of the distance/displacement distinction and is worth calling out explicitly rather than letting it pass as just another data row."
+        }
       }
     },
     {
@@ -53,40 +119,97 @@
       "display_title": "Graph Visualizer: Slope, Area, and the Kinematic Equations",
       "body_json": {
         "definitions": [
-          { "term": "Distance", "type": "scalar", "note": "Total path length covered, regardless of direction." },
-          { "term": "Displacement", "type": "vector", "note": "Straight-line change in position, with direction." },
-          { "term": "Speed", "type": "scalar", "note": "Distance covered per unit time." },
-          { "term": "Velocity", "type": "vector", "note": "Displacement per unit time, with direction." },
-          { "term": "Acceleration", "type": "vector", "note": "Rate of change of velocity per unit time." }
+          {
+            "term": "Distance",
+            "type": "scalar",
+            "note": "Total path length covered, regardless of direction."
+          },
+          {
+            "term": "Displacement",
+            "type": "vector",
+            "note": "Straight-line change in position, with direction."
+          },
+          {
+            "term": "Speed",
+            "type": "scalar",
+            "note": "Distance covered per unit time."
+          },
+          {
+            "term": "Velocity",
+            "type": "vector",
+            "note": "Displacement per unit time, with direction."
+          },
+          {
+            "term": "Acceleration",
+            "type": "vector",
+            "note": "Rate of change of velocity per unit time."
+          }
         ],
         "graph_reading_prompts": [
-          { "graph": "displacement_time", "reads_as": "slope = velocity" },
-          { "graph": "velocity_time", "reads_as": "slope = acceleration" },
-          { "graph": "velocity_time", "reads_as": "area under curve = displacement" }
+          {
+            "graph": "displacement_time",
+            "reads_as": "slope = velocity"
+          },
+          {
+            "graph": "velocity_time",
+            "reads_as": "slope = acceleration"
+          },
+          {
+            "graph": "velocity_time",
+            "reads_as": "area under curve = displacement"
+          }
         ],
         "kinematic_equations": [
-          { "id": "eq1", "formula": "v = v0 + a*t", "solves_for": "v", "derivation_steps": [
-            "Start from the definition of acceleration: a = (v - v0) / t",
-            "Multiply both sides by t: a*t = v - v0",
-            "Add v0 to both sides: v0 + a*t = v"
-          ]},
-          { "id": "eq2", "formula": "d = v0*t + 0.5*a*t^2", "solves_for": "d", "derivation_steps": [
-            "Average velocity over constant acceleration: v_avg = (v0 + v) / 2",
-            "Displacement: d = v_avg * t = ((v0 + v) / 2) * t",
-            "Substitute v = v0 + a*t: d = ((v0 + v0 + a*t) / 2) * t",
-            "Simplify: d = v0*t + 0.5*a*t^2"
-          ]},
-          { "id": "eq3", "formula": "v^2 = v0^2 + 2*a*d", "solves_for": "v", "derivation_steps": [
-            "From eq1: t = (v - v0) / a",
-            "Substitute into eq2: d = v0*(v - v0)/a + 0.5*a*((v - v0)/a)^2",
-            "Simplify and solve for v^2: v^2 = v0^2 + 2*a*d"
-          ]},
-          { "id": "eq4", "formula": "d = 0.5*(v0 + v)*t", "solves_for": "d", "derivation_steps": [
-            "Average velocity for uniformly accelerated motion: v_avg = (v0 + v) / 2",
-            "Displacement equals average velocity times time: d = v_avg * t",
-            "d = 0.5*(v0 + v)*t"
-          ]}
-        ]
+          {
+            "id": "eq1",
+            "formula": "v = v0 + a*t",
+            "solves_for": "v",
+            "derivation_steps": [
+              "Start from the definition of acceleration: a = (v - v0) / t",
+              "Multiply both sides by t: a*t = v - v0",
+              "Add v0 to both sides: v0 + a*t = v"
+            ]
+          },
+          {
+            "id": "eq2",
+            "formula": "d = v0*t + 0.5*a*t^2",
+            "solves_for": "d",
+            "derivation_steps": [
+              "Average velocity over constant acceleration: v_avg = (v0 + v) / 2",
+              "Displacement: d = v_avg * t = ((v0 + v) / 2) * t",
+              "Substitute v = v0 + a*t: d = ((v0 + v0 + a*t) / 2) * t",
+              "Simplify: d = v0*t + 0.5*a*t^2"
+            ]
+          },
+          {
+            "id": "eq3",
+            "formula": "v^2 = v0^2 + 2*a*d",
+            "solves_for": "v",
+            "derivation_steps": [
+              "From eq1: t = (v - v0) / a",
+              "Substitute into eq2: d = v0*(v - v0)/a + 0.5*a*((v - v0)/a)^2",
+              "Simplify and solve for v^2: v^2 = v0^2 + 2*a*d"
+            ]
+          },
+          {
+            "id": "eq4",
+            "formula": "d = 0.5*(v0 + v)*t",
+            "solves_for": "d",
+            "derivation_steps": [
+              "Average velocity for uniformly accelerated motion: v_avg = (v0 + v) / 2",
+              "Displacement equals average velocity times time: d = v_avg * t",
+              "d = 0.5*(v0 + v)*t"
+            ]
+          }
+        ],
+        "teacher_answer_key": {
+          "graph_reading_summary": [
+            "Displacement-time (d-t) graph: slope = delta_d / delta_t = velocity (v)",
+            "Velocity-time (v-t) graph: slope = delta_v / delta_t = acceleration (a)",
+            "Velocity-time (v-t) graph: area under curve = displacement (delta_x)"
+          ],
+          "teaching_note": "Full step-by-step derivations for all four kinematic equations are already provided per-equation in this stage's kinematic_equations.derivation_steps field — this summary is a quick-glance version for the teacher dashboard, not a replacement for the full derivations."
+        }
       }
     },
     {
@@ -97,7 +220,10 @@
       "display_title": "Mission Mode: Commute Challenge",
       "body_json": {
         "intro": "Use the kinematic equations to determine whether a rider can still catch the last boat trip at the port, or how quickly a tricycle must slow down to stop safely at a hump.",
-        "levels_ref": ["kinematics_v1_level_1", "kinematics_v1_level_2"]
+        "levels_ref": [
+          "kinematics_v1_level_1",
+          "kinematics_v1_level_2"
+        ]
       }
     },
     {
@@ -113,7 +239,6 @@
       }
     }
   ],
-
   "quiz_items": [
     {
       "item_id": "kinematics_v1_q1",
@@ -121,15 +246,28 @@
       "item_type": "mcq",
       "prompt": "A tricycle travels 3 km east then returns 3 km west back to its starting point. What is its total displacement?",
       "choices_json": [
-        { "key": "A", "text": "6 km" },
-        { "key": "B", "text": "3 km" },
-        { "key": "C", "text": "0 km" },
-        { "key": "D", "text": "1.5 km" }
+        {
+          "key": "A",
+          "text": "6 km"
+        },
+        {
+          "key": "B",
+          "text": "3 km"
+        },
+        {
+          "key": "C",
+          "text": "0 km"
+        },
+        {
+          "key": "D",
+          "text": "1.5 km"
+        }
       ],
       "correct_answer": "C",
       "explanation": "Displacement is the straight-line change in position. Since the tricycle returns to its starting point, the net displacement is 0 km, even though it traveled 6 km of total distance.",
       "tos_competency": "differentiate distance from displacement",
-      "difficulty": "easy"
+      "difficulty": "easy",
+      "teacher_formula": "delta_x = x_final - x_initial = 0 km - 0 km = 0 km"
     },
     {
       "item_id": "kinematics_v1_q2",
@@ -137,15 +275,28 @@
       "item_type": "mcq",
       "prompt": "Which of the following is a vector quantity?",
       "choices_json": [
-        { "key": "A", "text": "Distance" },
-        { "key": "B", "text": "Speed" },
-        { "key": "C", "text": "Velocity" },
-        { "key": "D", "text": "Time" }
+        {
+          "key": "A",
+          "text": "Distance"
+        },
+        {
+          "key": "B",
+          "text": "Speed"
+        },
+        {
+          "key": "C",
+          "text": "Velocity"
+        },
+        {
+          "key": "D",
+          "text": "Time"
+        }
       ],
       "correct_answer": "C",
       "explanation": "Velocity has both magnitude and direction, making it a vector quantity. Distance, speed, and time are scalar quantities.",
       "tos_competency": "differentiate scalar from vector quantities",
-      "difficulty": "easy"
+      "difficulty": "easy",
+      "teacher_formula": "Velocity has magnitude AND direction -> vector. Distance, speed, time are scalars."
     },
     {
       "item_id": "kinematics_v1_q3",
@@ -153,15 +304,28 @@
       "item_type": "mcq",
       "prompt": "A jeepney covers 500 m in 25 s at constant speed. Compute its average velocity.",
       "choices_json": [
-        { "key": "A", "text": "5 m/s" },
-        { "key": "B", "text": "10 m/s" },
-        { "key": "C", "text": "20 m/s" },
-        { "key": "D", "text": "25 m/s" }
+        {
+          "key": "A",
+          "text": "5 m/s"
+        },
+        {
+          "key": "B",
+          "text": "10 m/s"
+        },
+        {
+          "key": "C",
+          "text": "20 m/s"
+        },
+        {
+          "key": "D",
+          "text": "25 m/s"
+        }
       ],
       "correct_answer": "C",
       "explanation": "Average velocity = displacement / time = 500 m / 25 s = 20 m/s.",
       "tos_competency": "calculate displacement, velocity, and acceleration",
-      "difficulty": "average"
+      "difficulty": "average",
+      "teacher_formula": "v = d / t = 500 m / 25 s = 20 m/s"
     },
     {
       "item_id": "kinematics_v1_q4",
@@ -169,15 +333,28 @@
       "item_type": "mcq",
       "prompt": "On a velocity-time graph, what does the slope of the line represent?",
       "choices_json": [
-        { "key": "A", "text": "Displacement" },
-        { "key": "B", "text": "Distance" },
-        { "key": "C", "text": "Acceleration" },
-        { "key": "D", "text": "Speed" }
+        {
+          "key": "A",
+          "text": "Displacement"
+        },
+        {
+          "key": "B",
+          "text": "Distance"
+        },
+        {
+          "key": "C",
+          "text": "Acceleration"
+        },
+        {
+          "key": "D",
+          "text": "Speed"
+        }
       ],
       "correct_answer": "C",
       "explanation": "The slope of a velocity-time graph represents the rate of change of velocity, which is acceleration.",
       "tos_competency": "interpret velocity-time graphs",
-      "difficulty": "average"
+      "difficulty": "average",
+      "teacher_formula": "slope of v-t graph = delta_v / delta_t = acceleration"
     },
     {
       "item_id": "kinematics_v1_q5",
@@ -185,15 +362,28 @@
       "item_type": "mcq",
       "prompt": "On a displacement-time graph, what does the slope represent at any point?",
       "choices_json": [
-        { "key": "A", "text": "Acceleration" },
-        { "key": "B", "text": "Velocity" },
-        { "key": "C", "text": "Distance" },
-        { "key": "D", "text": "Time" }
+        {
+          "key": "A",
+          "text": "Acceleration"
+        },
+        {
+          "key": "B",
+          "text": "Velocity"
+        },
+        {
+          "key": "C",
+          "text": "Distance"
+        },
+        {
+          "key": "D",
+          "text": "Time"
+        }
       ],
       "correct_answer": "B",
       "explanation": "The slope of a displacement-time graph at any point represents the instantaneous velocity.",
       "tos_competency": "interpret displacement-time graphs",
-      "difficulty": "average"
+      "difficulty": "average",
+      "teacher_formula": "slope of d-t graph = delta_d / delta_t = velocity"
     },
     {
       "item_id": "kinematics_v1_q6",
@@ -201,31 +391,57 @@
       "item_type": "mcq",
       "prompt": "A motorcycle accelerates uniformly from rest to 20 m/s in 4 s. Determine its acceleration.",
       "choices_json": [
-        { "key": "A", "text": "4 m/s\u00b2" },
-        { "key": "B", "text": "5 m/s\u00b2" },
-        { "key": "C", "text": "16 m/s\u00b2" },
-        { "key": "D", "text": "80 m/s\u00b2" }
+        {
+          "key": "A",
+          "text": "4 m/s²"
+        },
+        {
+          "key": "B",
+          "text": "5 m/s²"
+        },
+        {
+          "key": "C",
+          "text": "16 m/s²"
+        },
+        {
+          "key": "D",
+          "text": "80 m/s²"
+        }
       ],
       "correct_answer": "B",
-      "explanation": "a = (v - v0) / t = (20 - 0) / 4 = 5 m/s\u00b2.",
+      "explanation": "a = (v - v0) / t = (20 - 0) / 4 = 5 m/s².",
       "tos_competency": "calculate displacement, velocity, and acceleration",
-      "difficulty": "average"
+      "difficulty": "average",
+      "teacher_formula": "a = (v - v0) / t = (20 - 0) / 4 = 5 m/s²"
     },
     {
       "item_id": "kinematics_v1_q7",
       "stage_id": "kinematics_v1_evaluate",
       "item_type": "mcq",
-      "prompt": "Using v = v0 + at, find the final velocity of a car that starts at 10 m/s and accelerates at 2 m/s\u00b2 for 5 s.",
+      "prompt": "Using v = v0 + at, find the final velocity of a car that starts at 10 m/s and accelerates at 2 m/s² for 5 s.",
       "choices_json": [
-        { "key": "A", "text": "12 m/s" },
-        { "key": "B", "text": "15 m/s" },
-        { "key": "C", "text": "20 m/s" },
-        { "key": "D", "text": "25 m/s" }
+        {
+          "key": "A",
+          "text": "12 m/s"
+        },
+        {
+          "key": "B",
+          "text": "15 m/s"
+        },
+        {
+          "key": "C",
+          "text": "20 m/s"
+        },
+        {
+          "key": "D",
+          "text": "25 m/s"
+        }
       ],
       "correct_answer": "C",
       "explanation": "v = v0 + a*t = 10 + 2(5) = 20 m/s.",
       "tos_competency": "apply the kinematic equations",
-      "difficulty": "average"
+      "difficulty": "average",
+      "teacher_formula": "v = v0 + at = 10 + (2 x 5) = 20 m/s"
     },
     {
       "item_id": "kinematics_v1_q8",
@@ -233,15 +449,28 @@
       "item_type": "mcq",
       "prompt": "What physical quantity is equal to the area under a velocity-time graph?",
       "choices_json": [
-        { "key": "A", "text": "Acceleration" },
-        { "key": "B", "text": "Displacement" },
-        { "key": "C", "text": "Speed" },
-        { "key": "D", "text": "Force" }
+        {
+          "key": "A",
+          "text": "Acceleration"
+        },
+        {
+          "key": "B",
+          "text": "Displacement"
+        },
+        {
+          "key": "C",
+          "text": "Speed"
+        },
+        {
+          "key": "D",
+          "text": "Force"
+        }
       ],
       "correct_answer": "B",
       "explanation": "The area under a velocity-time graph represents the displacement over that time interval.",
       "tos_competency": "interpret velocity-time graphs",
-      "difficulty": "average"
+      "difficulty": "average",
+      "teacher_formula": "area under v-t curve = velocity x time = displacement"
     },
     {
       "item_id": "kinematics_v1_q9",
@@ -249,15 +478,28 @@
       "item_type": "mcq",
       "prompt": "Which pair correctly distinguishes a scalar quantity from a vector quantity?",
       "choices_json": [
-        { "key": "A", "text": "Distance (scalar) and Displacement (vector)" },
-        { "key": "B", "text": "Velocity (scalar) and Speed (vector)" },
-        { "key": "C", "text": "Acceleration (scalar) and Time (vector)" },
-        { "key": "D", "text": "Displacement (scalar) and Distance (vector)" }
+        {
+          "key": "A",
+          "text": "Distance (scalar) and Displacement (vector)"
+        },
+        {
+          "key": "B",
+          "text": "Velocity (scalar) and Speed (vector)"
+        },
+        {
+          "key": "C",
+          "text": "Acceleration (scalar) and Time (vector)"
+        },
+        {
+          "key": "D",
+          "text": "Displacement (scalar) and Distance (vector)"
+        }
       ],
       "correct_answer": "A",
       "explanation": "Distance is a scalar quantity (magnitude only), while displacement is a vector quantity (magnitude and direction).",
       "tos_competency": "differentiate scalar from vector quantities",
-      "difficulty": "average"
+      "difficulty": "average",
+      "teacher_formula": "Distance = scalar (no direction); Displacement = vector (has direction)"
     },
     {
       "item_id": "kinematics_v1_q10",
@@ -265,66 +507,113 @@
       "item_type": "mcq",
       "prompt": "A cyclist travels 150 m north in 30 s, then rests for the next 10 s. What is the cyclist's average velocity for the whole 40 s trip?",
       "choices_json": [
-        { "key": "A", "text": "3.75 m/s north" },
-        { "key": "B", "text": "5 m/s north" },
-        { "key": "C", "text": "15 m/s north" },
-        { "key": "D", "text": "0 m/s" }
+        {
+          "key": "A",
+          "text": "3.75 m/s north"
+        },
+        {
+          "key": "B",
+          "text": "5 m/s north"
+        },
+        {
+          "key": "C",
+          "text": "15 m/s north"
+        },
+        {
+          "key": "D",
+          "text": "0 m/s"
+        }
       ],
       "correct_answer": "A",
       "explanation": "Average velocity = total displacement / total time = 150 m / 40 s = 3.75 m/s north. The resting period counts toward total time even though no additional displacement occurs.",
       "tos_competency": "calculate displacement, velocity, and acceleration",
-      "difficulty": "difficult"
+      "difficulty": "difficult",
+      "teacher_formula": "v_avg = delta_x_total / t_total = 150 m / (30+10) s = 3.75 m/s north"
     }
   ],
-
   "mission_levels": [
     {
       "level_id": "kinematics_v1_level_1",
       "level_number": 1,
       "title": "Catch the Last Trip",
       "scenario_text": "A habal-habit is traveling from one barangay to a school. The rider needs to know their average velocity to determine if they can catch a scheduled boat trip at the port before it departs.",
-      "given_values": { "displacement_m": 4000, "time_s": 400 },
+      "given_values": {
+        "displacement_m": 4000,
+        "time_s": 400
+      },
       "target_variable": "v",
       "formula_hint": "v_avg = displacement / time",
       "correct_answer": 10.0,
       "tolerance": 0.2,
-      "unit": "m/s"
+      "unit": "m/s",
+      "teacher_solution": {
+        "given": "d = 4000 m, t = 400 s",
+        "steps": [
+          "v_avg = d / t",
+          "v_avg = 4000 m / 400 s",
+          "v_avg = 10.0 m/s"
+        ],
+        "target_answer_restated": "10.0 m/s (36 km/h)"
+      }
     },
     {
       "level_id": "kinematics_v1_level_2",
       "level_number": 2,
       "title": "Stop at the Hump",
       "scenario_text": "A tricycle approaching an intersection with a road hump is traveling at 15 m/s and must come to a complete stop in 5 s to cross safely. Determine the required acceleration (deceleration).",
-      "given_values": { "v0": 15, "v": 0, "time_s": 5 },
+      "given_values": {
+        "v0": 15,
+        "v": 0,
+        "time_s": 5
+      },
       "target_variable": "a",
       "formula_hint": "a = (v - v0) / t",
       "correct_answer": -3.0,
       "tolerance": 0.2,
-      "unit": "m/s\u00b2"
+      "unit": "m/s²",
+      "teacher_solution": {
+        "given": "v0 = 15 m/s, v = 0 m/s, t = 5 s",
+        "steps": [
+          "a = (v - v0) / t",
+          "a = (0 - 15) / 5",
+          "a = -3.0 m/s²"
+        ],
+        "target_answer_restated": "-3.0 m/s² (a deceleration of 3.0 m/s²)"
+      }
     }
   ],
-
   "badges": [
     {
       "badge_id": "vector_voyager",
       "badge_name": "Vector Voyager",
       "description": "Correctly answered at least 80% of items on distance/displacement and speed/velocity.",
       "icon_asset": "badges/vector_voyager.png",
-      "unlock_rule_json": { "type": "quiz_score_gte", "value": 0.8, "stage": "evaluate" }
+      "unlock_rule_json": {
+        "type": "quiz_score_gte",
+        "value": 0.8,
+        "stage": "evaluate"
+      }
     },
     {
       "badge_id": "motion_master",
       "badge_name": "Motion Master",
       "description": "Completed both Commute Challenge levels in Mission Mode.",
       "icon_asset": "badges/motion_master.png",
-      "unlock_rule_json": { "type": "mission_levels_completed", "value": 2 }
+      "unlock_rule_json": {
+        "type": "mission_levels_completed",
+        "value": 2
+      }
     },
     {
       "badge_id": "graph_reader",
       "badge_name": "Graph Reader",
       "description": "Explored both displacement-time and velocity-time graphs in the Graph Visualizer.",
       "icon_asset": "badges/graph_reader.png",
-      "unlock_rule_json": { "type": "module_interaction", "module_key": "graph_visualizer", "views_gte": 2 }
+      "unlock_rule_json": {
+        "type": "module_interaction",
+        "module_key": "graph_visualizer",
+        "views_gte": 2
+      }
     }
   ]
 }
