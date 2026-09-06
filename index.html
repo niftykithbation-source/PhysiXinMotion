@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Downloading PhysiXinMotion...</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body { font-family: sans-serif; text-align: center; padding: 50px; background: #f4f4f9; }
+        .loader { border: 5px solid #f3f3f3; border-top: 5px solid #3498db; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 20px auto; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+    <h2>Detecting your device...</h2>
+    <p>Your download will begin automatically in a moment.</p>
+    <div class="loader"></div>
+    <p id="msg"></p>
+
+    <script>
+        const iosLink = "https://github.com/niftykithbation-source/PhysiXinMotion/releases/download/v1.0.0-ios/Runner.app.zip";
+        const androidLink = "https://github.com/niftykithbation-source/PhysiXinMotion/releases/download/v1.0.0/app-release.apk";
+        const fallbackLink = "https://github.com/niftykithbation-source/PhysiXinMotion";
+
+        const userAgent = navigator.userAgent || navigator.vendor || window.opera;
+        let downloadUrl = fallbackLink;
+
+        if (/iPad|iPhone|iPod/.test(userAgent) && !window.MSStream) {
+            downloadUrl = iosLink;
+            document.getElementById("msg").innerText = "Redirecting to iOS Download...";
+        } else if (/android/i.test(userAgent)) {
+            downloadUrl = androidLink;
+            document.getElementById("msg").innerText = "Redirecting to Android APK Download...";
+        } else {
+            document.getElementById("msg").innerText = "Opening GitHub Repository (Desktop)...";
+        }
+
+        // Trigger the download immediately
+        setTimeout(() => {
+            window.location.href = downloadUrl;
+        }, 1000);
+    </script>
+</body>
+</html>
